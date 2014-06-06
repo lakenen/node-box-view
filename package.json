@@ -17,10 +17,14 @@
     "viewer.js"
   ],
   "author": "Cameron Lakenen <lakenen@box.com>",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/lakenen/node-box-view.git"
+  },
   "license": [
     {
       "type": "Apache-2.0",
-      "url": "https://github.com/box/node-box-view/blob/master/LICENSE"
+      "url": "https://github.com/lakenen/node-box-view/blob/master/LICENSE"
     }
   ],
   "dependencies": {

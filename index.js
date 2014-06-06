@@ -61,7 +61,7 @@ function BoxView(key) {
          * @param   {Object}   params                URL parameters
          * @param   {int}      params.limit          The number of documents to return (default: 10, max: 50)
          * @param   {Date}     params.created_before An upper limit on the creation timestamps of documents returned (default: now)
-         * @param   {Date}     params.created_after  A lower limit on the creation timestamps of documents returned (default: now)
+         * @param   {Date}     params.created_after  A lower limit on the creation timestamps of documents returned
          * @param   {Function} callback              A callback to call with the response data (or error)
          * @returns {void}
          */
@@ -280,18 +280,20 @@ function BoxView(key) {
 
         /**
          * Request a viewing session for a document
+         * @param   {String}   id                     The document uuid
          * @param   {Object}   params                 Session parameters
-         * @param   {String}   params.document_id     The uuid of the document
          * @param   {int}      params.duration        The duration in minutes until the session expires (default: 60)
          * @param   {Date}     params.expires_at      The timestamp at which the session should expire
          * @param   {boolean}  params.is_downloadable Whether a the original file will be available for download via GET /sessions/{id}/content while the session is active
          * @param   {Function} callback               A callback to call with the response data (or error)
          * @returns {void}
          */
-        create: function (params, callback) {
+        create: function (id, params, callback) {
             var retry = function () {
                 this.create(params, callback);
             }.bind(this);
+
+            params['document_id'] = id;
 
             if (params['expires_at']) {
                 params['expires_at'] = getTimestamp(params['expires_at']);
@@ -329,6 +331,7 @@ function BoxView(key) {
 }
 
 module.exports = {
+    BoxView: BoxView,
     createClient: function (key) {
         return new BoxView(key);
     }
