@@ -27,7 +27,7 @@ See the [Box View API Documentation](http://developers.box.com/view/) for a list
 `client.documents.list(params, callback)`
 
 Fetch a list of documents uploaded using this API key.
-* `params` - (`Object`) a map of URL parameters
+* `params` - (`object`) a map of URL parameters
 * `params.limit` - (`int`) The number of documents to return (default: 10, max: 50)
 * `params.created_before` - (`Date`) An upper limit on the creation timestamps of documents returned (default: now)
 * `params.created_after` - (`Date`)  A lower limit on the creation timestamps of documents returned
@@ -38,8 +38,8 @@ Fetch a list of documents uploaded using this API key.
 `client.documents.get(id, fields, callback)`
 
 Fetch the metadata for a single document.
-* `id` - (`String`) The document uuid
-* `fields` - (`String`) Comma-separated list of fields to return (e.g., `'id,type,name,status'`); id and type are always returned
+* `id` - (`string`) The document uuid
+* `fields` - (`string`) Comma-separated list of fields to return (e.g., `'id,type,name,status'`); id and type are always returned
 * `callback` - (`function(error, response)`) A callback to call with the response data (or error)
 
 #### update
@@ -47,8 +47,8 @@ Fetch the metadata for a single document.
 `client.documents.update(id, data, callback)`
 
 Update the metadata for a single document
-* `id` - (`String`) The document uuid
-* `data` - (`Object`) The new metadata (currently only `name` is supported)
+* `id` - (`string`) The document uuid
+* `data` - (`object`) The new metadata (currently only `name` is supported)
 * `callback` - (`function(error, response)`) A callback to call with the response data (or error)
 
 #### delete
@@ -56,7 +56,7 @@ Update the metadata for a single document
 `client.documents.delete(id, callback)`
 
 Delete a single document
-* `id` - (`String`) The document uuid
+* `id` - (`string`) The document uuid
 * `callback` - (`function(error, response)`) A callback to call with the response data (or error)
 
 #### uploadFile
@@ -64,11 +64,11 @@ Delete a single document
 `client.documents.uploadFile(file, params, callback)`
 
 Do a multipart upload from a file path or readable stream
-* `file` - (`String` or `stream.Readable`) A path to a file to read or a readable stream
-* `params` - (`Object`) Upload parameters
-* `params.name` - (`String`) The name of the file
-* `params.thumbnails` - (`String`) Comma-separated list of thumbnail dimensions of the format `{width}x{height}` (e.g. `'128×128,256×256'`) – width can be between 16 and 1024, height between 16 and 768
-* `params.non_svg` - (`Boolean`) Whether to also create the non-svg version of the document
+* `file` - (`string` or `stream.Readable`) A path to a file to read or a readable stream
+* `params` - (`object`) Upload parameters
+* `params.name` - (`string`) The name of the file
+* `params.thumbnails` - (`string`) Comma-separated list of thumbnail dimensions of the format `{width}x{height}` (e.g. `'128×128,256×256'`) – width can be between 16 and 1024, height between 16 and 768
+* `params.non_svg` - (`boolean`) Whether to also create the non-svg version of the document
 * `callback` - (`function(error, response)`) A callback to call with the response data (or error)
 
 #### uploadURL
@@ -76,11 +76,11 @@ Do a multipart upload from a file path or readable stream
 `client.documents.uploadFile(url, params, callback)`
 
 Do a URL upload of a file
-* `url` - (`String`) A URL to a publicly-accessible file to upload
-* `params` - (`Object`) Upload parameters
-* `params.name` - (`String`) The name of the file
-* `params.thumbnails` - (`String`) Comma-separated list of thumbnail dimensions of the format `{width}x{height}` (e.g. `'128×128,256×256'`) – width can be between 16 and 1024, height between 16 and 768
-* `params.non_svg` - (`Boolean`) Whether to also create the non-svg version of the document
+* `url` - (`string`) A URL to a publicly-accessible file to upload
+* `params` - (`object`) Upload parameters
+* `params.name` - (`string`) The name of the file
+* `params.thumbnails` - (`string`) Comma-separated list of thumbnail dimensions of the format `{width}x{height}` (e.g. `'128×128,256×256'`) – width can be between 16 and 1024, height between 16 and 768
+* `params.non_svg` - (`boolean`) Whether to also create the non-svg version of the document
 * `callback` - (`function(error, response)`) A callback to call with the response data (or error)
 
 #### getContent
@@ -99,7 +99,7 @@ Fetches a document in the form specified by `extension`, which can be `pdf` or `
 
 Fetches a thumbnail for the given document id
 * `id` - (`string`) The document uuid
-* `params` - (`Object`) The thumbnail params
+* `params` - (`object`) The thumbnail params
 * `params.width` - (`int`) The thumbnail width
 * `params.height` - (`int`) The thumbnail height
 * `callback` - (`function(error, response)`) A callback to call with the response (or error)
@@ -108,9 +108,11 @@ Fetches a thumbnail for the given document id
 
 #### create
 
+`client.sessions.create(id, params, callback)`
+
 Request a viewing session for a documentRequest a viewing session for a document
-* `id` - (`String`) The document uuid
-* `params` - (`Object`) Session parameters
+* `id` - (`string`) The document uuid
+* `params` - (`object`) Session parameters
 * `params.duration` - (`int`) The duration in minutes until the session expires (default: 60)
 * `params.expires_at` - (`Date`) The timestamp at which the session should expire
 * `params.is_downloadable` - (`boolean`) Whether a the original file will be available for download via GET /sessions/{id}/content while the session is active
