@@ -1,0 +1,29 @@
+{
+  "name": "box-view",
+  "version": "0.0.0",
+  "description": "A node client for the Box View API",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "box",
+    "box",
+    "view",
+    "api",
+    "box",
+    "view",
+    "crocodoc",
+    "viewer.js"
+  ],
+  "author": "Cameron Lakenen <lakenen@box.com>",
+  "license": [
+    {
+      "type": "Apache-2.0",
+      "url": "https://github.com/box/node-box-view/blob/master/LICENSE"
+    }
+  ],
+  "dependencies": {
+    "request": "^2.36.0"
+  }
+}
