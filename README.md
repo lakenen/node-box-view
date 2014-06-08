@@ -153,6 +153,11 @@ Request a viewing session for a documentRequest a viewing session for a document
 * `callback` - (`function(error, response)`) A callback to call with the response data (or error)
 
 
+## Running Tests
+
+Make sure you have the development dependencies installed by running `npm install`, then you should be able to run the tests with `npm test`.
+
+
 ## Copyright and License
 
 Copyright 2014 Box, Inc. All rights reserved.
