@@ -4,7 +4,7 @@
   "description": "A node client for the Box View API",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node test/*"
   },
   "keywords": [
     "box",
@@ -27,5 +27,9 @@
   ],
   "dependencies": {
     "request": "^2.36.0"
+  },
+  "devDependencies": {
+    "tape": "^2.13.2",
+    "nock": "^0.34.0"
   }
 }
