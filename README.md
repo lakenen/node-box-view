@@ -24,10 +24,10 @@ See the [Box View API Documentation](http://developers.box.com/view/) for a list
 
 #### list
 
-`client.documents.list(params, callback)`
+`client.documents.list([params,] callback)`
 
 Fetch a list of documents uploaded using this API key.
-* `params` - (`object`) a map of URL parameters
+* `params` - (`object`) An optional map of URL parameters for filtering documents
 * `params.limit` - (`int`) The number of documents to return (default: 10, max: 50)
 * `params.created_before` - (`Date`) An upper limit on the creation timestamps of documents returned (default: now)
 * `params.created_after` - (`Date`)  A lower limit on the creation timestamps of documents returned
@@ -35,11 +35,11 @@ Fetch a list of documents uploaded using this API key.
 
 #### get
 
-`client.documents.get(id, fields, callback)`
+`client.documents.get(id, [fields,] callback)`
 
 Fetch the metadata for a single document.
 * `id` - (`string`) The document uuid
-* `fields` - (`string`) Comma-separated list of fields to return (e.g., `'id,type,name,status'`); id and type are always returned
+* `fields` - (`Array` or `string`) An optional array or comma-separated list of fields to return (e.g., `['name', 'status']` or `'name,status'`); id and type are always returned
 * `callback` - (`function(error, response)`) A callback to call with the response data (or error)
 
 #### update
@@ -61,11 +61,11 @@ Delete a single document
 
 #### uploadFile
 
-`client.documents.uploadFile(file, params, callback)`
+`client.documents.uploadFile(file, [params,] callback)`
 
 Do a multipart upload from a file path or readable stream
 * `file` - (`string` or `stream.Readable`) A path to a file to read or a readable stream
-* `params` - (`object`) Upload parameters
+* `params` - (`object`) An optional map of upload parameters
 * `params.name` - (`string`) The name of the file
 * `params.thumbnails` - (`string`) Comma-separated list of thumbnail dimensions of the format `{width}x{height}` (e.g. `'128×128,256×256'`) – width can be between 16 and 1024, height between 16 and 768
 * `params.non_svg` - (`boolean`) Whether to also create the non-svg version of the document
@@ -73,11 +73,11 @@ Do a multipart upload from a file path or readable stream
 
 #### uploadURL
 
-`client.documents.uploadFile(url, params, callback)`
+`client.documents.uploadFile(url, [params,] callback)`
 
 Do a URL upload of a file
 * `url` - (`string`) A URL to a publicly-accessible file to upload
-* `params` - (`object`) Upload parameters
+* `params` - (`object`) An optional map of upload parameters
 * `params.name` - (`string`) The name of the file
 * `params.thumbnails` - (`string`) Comma-separated list of thumbnail dimensions of the format `{width}x{height}` (e.g. `'128×128,256×256'`) – width can be between 16 and 1024, height between 16 and 768
 * `params.non_svg` - (`boolean`) Whether to also create the non-svg version of the document
@@ -85,13 +85,30 @@ Do a URL upload of a file
 
 #### getContent
 
-`client.documents.getContent(id, extension, callback)`
+`client.documents.getContent(id, [extension,] callback)`
 
-Fetches a document in the form specified by `extension`, which can be `pdf` or `zip`.
+Fetches a document of a specified format.
 * If an extension is not specified, the document’s original format is returned.
 * `id` - (`string`) The document uuid
-* `extension` - (`string`) The document format to request
+* `extension` - (`string`) Optional document format to request (`'pdf'` or `'zip'`). If excluded, the original document format will be returned.
 * `callback` - (`function(error, response)`) A callback to call with the response (or error)
+
+Example:
+```js
+client.documents.getContent(id, 'zip', function (err, res) {
+    var file;
+    if (err) {
+        console.log(err);
+        return;
+    }
+
+    file = fs.createWriteStream('./doc.zip');
+    file.on('finish', function() {
+        file.close();
+    });
+    res.pipe(file);
+});
+```
 
 #### getThumbnail
 
@@ -99,20 +116,37 @@ Fetches a document in the form specified by `extension`, which can be `pdf` or `
 
 Fetches a thumbnail for the given document id
 * `id` - (`string`) The document uuid
-* `params` - (`object`) The thumbnail params
+* `params` - (`object`) The thumbnail params (**required**)
 * `params.width` - (`int`) The thumbnail width
 * `params.height` - (`int`) The thumbnail height
 * `callback` - (`function(error, response)`) A callback to call with the response (or error)
+
+Example:
+```js
+client.documents.getThumbnail(id, params, function (err, res) {
+    var file;
+    if (err) {
+        console.log(err);
+        return;
+    }
+
+    file = fs.createWriteStream('./thumbnail.png');
+    file.on('finish', function() {
+        file.close();
+    });
+    res.pipe(file);
+});
+```
 
 ### Sessions
 
 #### create
 
-`client.sessions.create(id, params, callback)`
+`client.sessions.create(id, [params,] callback)`
 
 Request a viewing session for a documentRequest a viewing session for a document
 * `id` - (`string`) The document uuid
-* `params` - (`object`) Session parameters
+* `params` - (`object`) An optional map of session parameters
 * `params.duration` - (`int`) The duration in minutes until the session expires (default: 60)
 * `params.expires_at` - (`Date`) The timestamp at which the session should expire
 * `params.is_downloadable` - (`boolean`) Whether a the original file will be available for download via GET /sessions/{id}/content while the session is active
