@@ -342,7 +342,7 @@ function BoxView(key) {
          */
         create: function (id, params, callback) {
             var retry = function () {
-                this.create(params, callback);
+                this.create(id, params, callback);
             }.bind(this);
 
             if (typeof params === 'function') {

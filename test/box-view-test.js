@@ -25,6 +25,8 @@ function nockUploads() {
     });
 }
 
+//////// DOCUMENTS /////////
+
 test('documents.list should return a list of documents when the request is successful', function (t) {
     t.plan(3);
 
@@ -43,7 +45,7 @@ test('documents.list should return a list of documents when the request is succe
     });
 });
 
-test('documents.list request the appropriate docs when filters are applied', function (t) {
+test('documents.list should request the appropriate docs when filters are applied', function (t) {
     t.plan(2);
 
     var params = {
@@ -171,5 +173,65 @@ test('documents.delete should return an error when the document is not found', f
     client.documents.delete(id, function (err) {
         t.ok(err, 'should be an error');
         t.ok(request.isDone(), 'request should be made properly');
+    });
+});
+
+
+
+
+
+//////// SESSIONS /////////
+
+test('sessions.create should request a session when called', function (t) {
+    t.plan(3);
+
+    var id = 'abc';
+
+    var session = {
+        type: 'session',
+        id: 'xyz',
+        'expires_at': '3915-10-06T10:24:21.320Z'
+    };
+
+    var request = nockAPI()
+        .post('/1/sessions', {
+            'document_id': id
+        })
+        .reply(201, session);
+
+    client.sessions.create(id, function (err, sess) {
+        t.notOk(err, 'should not be an error');
+        t.deepEqual(session, sess, 'session should be correct');
+        t.ok(request.isDone(), 'request should be made properly');
+    });
+});
+
+test('sessions.create should retry requesting a session when retry-after header is sent', function (t) {
+    t.plan(4);
+
+    var id = 'abc';
+
+    var session = {
+        type: 'session',
+        id: 'xyz',
+        'expires_at': '3915-10-06T10:24:21.320Z'
+    };
+
+    var request1 = nockAPI()
+        .post('/1/sessions', {
+            'document_id': id
+        })
+        .reply(202, '', { 'retry-after': 0.001 }); // small retry-after for testing purposes
+    var request2 = nockAPI()
+        .post('/1/sessions', {
+            'document_id': id
+        })
+        .reply(201, session);
+
+    client.sessions.create(id, function (err, sess) {
+        t.notOk(err, 'should not be an error');
+        t.deepEqual(session, sess, 'session should be correct');
+        t.ok(request1.isDone(), 'request should be made properly');
+        t.ok(request2.isDone(), 'request should be made properly');
     });
 });
