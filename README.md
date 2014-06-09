@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/lakenen/node-box-view.png?branch=master)](https://travis-ci.org/lakenen/node-box-view)
+
 # Box View API Node Client
 
 A node client for the [Box View API](http://developers.box.com/view/)
