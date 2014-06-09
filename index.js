@@ -171,7 +171,7 @@ function BoxView(key) {
             req({
                 method: 'DELETE',
                 url: client.documentsURL + '/' + id
-            }, createDefaultResponseHandler(callback));
+            }, createDefaultResponseHandler(callback, 204));
         },
 
         /**

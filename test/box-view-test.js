@@ -148,7 +148,7 @@ test('documents.delete should make a DELETE request properly', function (t) {
 
     var request = nockAPI()
         .delete('/1/documents/' + id)
-        .reply(200);
+        .reply(204);
 
     client.documents.delete(id, function (err) {
         t.notOk(err, 'should not be an error');
