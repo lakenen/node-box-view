@@ -26,7 +26,8 @@
     }
   ],
   "dependencies": {
-    "request": "^2.36.0"
+    "request": "^2.36.0",
+    "extend": "^1.2.1"
   },
   "devDependencies": {
     "tape": "^2.13.2",

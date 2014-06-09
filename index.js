@@ -2,6 +2,7 @@
 
 var fs = require('fs'),
     path = require('path'),
+    extend = require('extend'),
     https = require('https'),
     request = require('request'),
     querystring = require('querystring');
@@ -94,6 +95,8 @@ function BoxView(key) {
             if (typeof params === 'function') {
                 callback = params;
                 params = {};
+            } else {
+                params = extend({}, params);
             }
 
             if (params['created_before']) {
@@ -194,6 +197,8 @@ function BoxView(key) {
             if (typeof params === 'function') {
                 callback = params;
                 params = {};
+            } else {
+                params = extend({}, params);
             }
 
             if (!params.name) {
@@ -232,6 +237,8 @@ function BoxView(key) {
             if (typeof params === 'function') {
                 callback = params;
                 params = {};
+            } else {
+                params = extend({}, params);
             }
 
             if (!params.name) {
@@ -311,6 +318,8 @@ function BoxView(key) {
                     this.getThumbnail(id, params, callback);
                 }.bind(this);
 
+            params = extend({}, params);
+
             // NOTE: query string params are require here
             url = client.documentsURL + '/' + id + '/thumbnail?' + querystring.stringify(params);
             r = https.request(url, function (response) {
@@ -357,6 +366,8 @@ function BoxView(key) {
             if (typeof params === 'function') {
                 callback = params;
                 params = {};
+            } else {
+                params = extend({}, params);
             }
 
             params['document_id'] = id;
