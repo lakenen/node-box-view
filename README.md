@@ -151,7 +151,7 @@ Request a viewing session for a documentRequest a viewing session for a document
 * `params` - (`object`) An optional map of session parameters
 * `params.duration` - (`int`) The duration in minutes until the session expires (default: 60)
 * `params.expires_at` - (`Date`) The timestamp at which the session should expire
-* `params.is_downloadable` - (`boolean`) Whether a the original file will be available for download via GET /sessions/{id}/content while the session is active
+* `params.is_downloadable` - (`boolean`) Whether the original file will be available for download via GET /sessions/{id}/content while the session is active
 * `callback` - (`function(error, response)`) A callback to call with the response data (or error)
 
 
