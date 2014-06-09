@@ -202,11 +202,15 @@ function BoxView(key) {
                 params.name = path.basename(file.path);
             }
 
-            r = req({
+            r = request({
                 method: 'POST',
-                url: client.documentsUploadURL
+                url: client.documentsUploadURL,
+                headers: {
+                    'Authorization': 'Token ' + key
+                }
             }, createDefaultResponseHandler(callback));
 
+            // NOTE: r.form() automatically adds the 'content-type: multipart/form-data' header
             form = r.form();
             for (param in params) {
                 if (params.hasOwnProperty(param)) {
@@ -227,13 +231,13 @@ function BoxView(key) {
          * @returns {void}
          */
         uploadURL: function (url, params, callback) {
-            if (!params.name) {
-                params.name = path.basename(url);
-            }
-
             if (typeof params === 'function') {
                 callback = params;
                 params = {};
+            }
+
+            if (!params.name) {
+                params.name = path.basename(url);
             }
 
             params.url = url;
@@ -262,7 +266,10 @@ function BoxView(key) {
                 callback = extension;
                 extension = '';
             } else if (extension) {
-                extension = '.' + extension;
+                // add a . if there is an extension
+                if (!/^\./.test(extension)) {
+                    extension = '.' + extension;
+                }
             } else {
                 extension = '';
             }
