@@ -55,11 +55,9 @@ function readResponse(response, callback) {
         body += d.toString();
     });
     response.on('end', function () {
-        callback(null, JSON.parse(body));
+        callback(JSON.parse(body));
     });
-    response.on('error', function (err) {
-        callback(err);
-    });
+    response.on('error', callback);
 }
 
 /**
