@@ -198,6 +198,10 @@ function BoxView(key) {
                 params = {};
             }
 
+            if (!params.name) {
+                params.name = path.basename(file.path);
+            }
+
             r = req({
                 method: 'POST',
                 url: client.documentsUploadURL
