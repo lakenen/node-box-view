@@ -24,21 +24,52 @@ function getTimestamp(date) {
 }
 
 /**
- * Return a default http response handler that will be used in most API calls
- * @param   {Function} callback     The callback method to call
- * @param   {int}      okStatusCode (optional) HTTP status code to use as OK (default: 200)
- * @returns {Function}              The response handler
+ * Get the status text for a given http status code
+ * @param   {int} statusCode The status code
+ * @returns {string}         The status text
  */
-function createDefaultResponseHandler(callback, okStatusCode) {
-    okStatusCode = okStatusCode || 200;
+function statusText(statusCode) {
+    return require('http').STATUS_CODES[statusCode] || 'unknown';
+}
+
+/**
+ * Parse response body as JSON if possible, else return the raw body
+ * @param   {string} body   The response body
+ * @returns {Object|string} The parsed body
+ */
+function parseJSONBody(body) {
+    try {
+        return JSON.parse(body);
+    } catch (e) {
+        return body;
+    }
+}
+
+/**
+ * Return a default http response handler that will be used in most API calls
+ * @param   {Function} callback      The callback method to call
+ * @param   {Array}    okStatusCodes (optional) HTTP status codes to use as OK (default: [200])
+ * @returns {Function}               The response handler
+ */
+function createDefaultResponseHandler(callback, okStatusCodes) {
+    okStatusCodes = okStatusCodes || [200];
     return function handleResponse(error, response, body) {
         if (error) {
-            callback(error);
+            callback({
+                error: error,
+                status: response.statusCode,
+                response: response
+            });
         } else {
-            if (response.statusCode === okStatusCode) {
-                callback(null, body && JSON.parse(body) || response);
+            if (okStatusCodes.indexOf(response.statusCode) > -1) {
+                callback(null, parseJSONBody(body), response);
             } else {
-                callback(body && JSON.parse(body) || response);
+                // the error will be in the response body (or if empty, return the default status text)
+                callback({
+                    error: parseJSONBody(body) || statusText(response.statusCode),
+                    status: response.statusCode,
+                    response: response
+                });
             }
         }
     };
@@ -174,7 +205,7 @@ function BoxView(key) {
             req({
                 method: 'DELETE',
                 url: client.documentsURL + '/' + id
-            }, createDefaultResponseHandler(callback, 204));
+            }, createDefaultResponseHandler(callback, [204]));
         },
 
         /**
@@ -211,7 +242,7 @@ function BoxView(key) {
                 headers: {
                     'Authorization': 'Token ' + key
                 }
-            }, createDefaultResponseHandler(callback));
+            }, createDefaultResponseHandler(callback, [200, 202]));
 
             // NOTE: r.form() automatically adds the 'content-type: multipart/form-data' header
             form = r.form();
@@ -250,7 +281,7 @@ function BoxView(key) {
                 method: 'POST',
                 url: client.documentsURL,
                 body: JSON.stringify(params)
-            }, createDefaultResponseHandler(callback, 202));
+            }, createDefaultResponseHandler(callback, [200, 202]));
         },
 
         /**

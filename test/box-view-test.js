@@ -184,7 +184,7 @@ test('uploadFile should make a file upload request properly when given a filenam
 
     var request = nockUploads()
         .post('/1/documents')
-        .reply(200, doc1);
+        .reply(202, doc1);
 
     client.documents.uploadFile(__dirname + '/files/content.pdf', function (err, doc) {
         t.notOk(err, 'should not be an error');
@@ -200,7 +200,7 @@ test('uploadFile should make a file upload request properly when given a file st
 
     var request = nockUploads()
         .post('/1/documents')
-        .reply(200, doc1);
+        .reply(202, doc1);
 
     client.documents.uploadFile(fs.createReadStream(__dirname + '/files/content.pdf'), function (err, doc) {
         t.notOk(err, 'should not be an error');
