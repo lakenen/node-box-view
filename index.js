@@ -219,8 +219,6 @@ function BoxView(key) {
          * @returns {void}
          */
         uploadFile: function (file, params, callback) {
-            var r, param, form;
-
             if (typeof file === 'string') {
                 file = fs.createReadStream(file);
             }
@@ -236,22 +234,35 @@ function BoxView(key) {
                 params.name = path.basename(file.path);
             }
 
-            r = request({
-                method: 'POST',
-                url: client.documentsUploadURL,
-                headers: {
-                    'Authorization': 'Token ' + key
-                }
-            }, createDefaultResponseHandler(callback, [200, 202]));
+            // get the file size so we can set the proper length
+            fs.stat(file.path, function (err, stat) {
+                var r, param, form;
 
-            // NOTE: r.form() automatically adds the 'content-type: multipart/form-data' header
-            form = r.form();
-            for (param in params) {
-                if (params.hasOwnProperty(param)) {
-                    form.append(param, params[param]);
+                if (err) {
+                    callback(err);
+                    return;
                 }
-            }
-            form.append('file', file);
+
+                r = request({
+                    method: 'POST',
+                    url: client.documentsUploadURL,
+                    headers: {
+                        'Authorization': 'Token ' + key
+                    }
+                }, createDefaultResponseHandler(callback, [200, 202]));
+
+                // NOTE: r.form() automatically adds the 'content-type: multipart/form-data' header
+                form = r.form();
+                for (param in params) {
+                    if (params.hasOwnProperty(param)) {
+                        form.append(param, params[param]);
+                    }
+                }
+                form.append('file', file, {
+                    // must provide file length manually, because this is a stream
+                    knownLength: stat.size
+                });
+            });
         },
 
         /**

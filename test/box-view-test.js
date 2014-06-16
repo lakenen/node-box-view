@@ -193,6 +193,27 @@ test('uploadFile should make a file upload request properly when given a filenam
     });
 });
 
+// TODO: add some tests to match properly on multipart form data when I figure out how (https://github.com/pgte/nock/issues/191)
+test.only('uploadFile should set content-length properly when called', function (t) {
+    t.plan(3);
+    var file = __dirname + '/files/content.pdf';
+    fs.stat(file, function (err, stat) {
+        var doc1 = { some: 'stuff' };
+        var request = nockUploads()
+            .matchHeader('content-length', function (val) {
+                return val >= stat.size;
+            })
+            .post('/1/documents')
+            .reply(202, doc1);
+
+        client.documents.uploadFile(file, function (err, doc) {
+            t.notOk(err, 'should not be an error');
+            t.deepEqual(doc1, doc, 'should be a doc');
+            t.ok(request.isDone(), 'request should be made properly');
+        });
+    });
+});
+
 test('uploadFile should make a file upload request properly when given a file stream', function (t) {
     t.plan(3);
 
