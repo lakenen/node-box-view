@@ -194,7 +194,7 @@ test('uploadFile should make a file upload request properly when given a filenam
 });
 
 // TODO: add some tests to match properly on multipart form data when I figure out how (https://github.com/pgte/nock/issues/191)
-test.only('uploadFile should set content-length properly when called', function (t) {
+test('uploadFile should set content-length properly when called', function (t) {
     t.plan(3);
     var file = __dirname + '/files/content.pdf';
     fs.stat(file, function (err, stat) {
