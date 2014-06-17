@@ -230,6 +230,26 @@ test('uploadFile should make a file upload request properly when given a file st
     });
 });
 
+test('uploadFile should make a file upload request properly when given extra options', function (t) {
+    t.plan(3);
+
+    var doc1 = { some: 'stuff' },
+        options = {
+            'non_svg': true,
+            name: 'test file'
+        };
+
+    var request = nockUploads()
+        .post('/1/documents')
+        .reply(202, doc1);
+
+    client.documents.uploadFile(fs.createReadStream(__dirname + '/files/content.pdf'), options, function (err, doc) {
+        t.notOk(err, 'should not be an error');
+        t.deepEqual(doc1, doc, 'should be a doc');
+        t.ok(request.isDone(), 'request should be made properly');
+    });
+});
+
 test('uploadURL should make a url upload request properly', function (t) {
     t.plan(3);
 

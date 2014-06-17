@@ -255,7 +255,7 @@ function BoxView(key) {
                 form = r.form();
                 for (param in params) {
                     if (params.hasOwnProperty(param)) {
-                        form.append(param, params[param]);
+                        form.append(param, params[param].toString());
                     }
                 }
                 form.append('file', file, {
