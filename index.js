@@ -46,6 +46,20 @@ function parseJSONBody(body) {
 }
 
 /**
+ * Create an error object to return
+ * @param   {*} error            The error
+ * @param   {Response?} response The response if available
+ * @returns {Object}             The error object
+ */
+function createErrorObject(error, response) {
+    return {
+        error: error,
+        status: response && response.statusCode || 0,
+        response: response
+    };
+}
+
+/**
  * Return a default http response handler that will be used in most API calls
  * @param   {Function} callback      The callback method to call
  * @param   {Array}    okStatusCodes (optional) HTTP status codes to use as OK (default: [200])
@@ -55,21 +69,14 @@ function createDefaultResponseHandler(callback, okStatusCodes) {
     okStatusCodes = okStatusCodes || [200];
     return function handleResponse(error, response, body) {
         if (error) {
-            callback({
-                error: error,
-                status: response.statusCode,
-                response: response
-            });
+            callback(createErrorObject(error, response));
         } else {
             if (okStatusCodes.indexOf(response.statusCode) > -1) {
                 callback(null, parseJSONBody(body), response);
             } else {
                 // the error will be in the response body (or if empty, return the default status text)
-                callback({
-                    error: parseJSONBody(body) || statusText(response.statusCode),
-                    status: response.statusCode,
-                    response: response
-                });
+                error = parseJSONBody(body) || statusText(response.statusCode);
+                callback(createErrorObject(error, response));
             }
         }
     };
@@ -87,7 +94,7 @@ function readResponse(response, callback) {
         body += d.toString();
     });
     response.on('end', function () {
-        callback(JSON.parse(body));
+        callback(parseJSONBody(body));
     });
     response.on('error', callback);
 }
@@ -336,7 +343,9 @@ function BoxView(key) {
                         break;
                     default:
                         // error
-                        readResponse(response, callback);
+                        readResponse(response, function (body) {
+                            callback(createErrorObject(body, response));
+                        });
                         break;
                 }
             });
@@ -378,13 +387,17 @@ function BoxView(key) {
                         break;
                     default:
                         // error
-                        readResponse(response, callback);
+                        readResponse(response, function (body) {
+                            callback(createErrorObject(body, response));
+                        });
                         break;
                 }
             });
             r.setHeader('Authorization', 'Token ' + key);
             r.end();
-            r.on('error', callback);
+            r.on('error', function (err) {
+                createErrorObject(err);
+            });
         }
     };
 
@@ -425,7 +438,7 @@ function BoxView(key) {
             }, function (error, response, body) {
                 var retryAfter;
                 if (error) {
-                    callback(error);
+                    callback(createErrorObject(error, response));
                 } else {
                     switch (response.statusCode) {
                         case 201:
@@ -439,7 +452,7 @@ function BoxView(key) {
                             break;
                         default:
                             // error
-                            callback(JSON.parse(body));
+                            callback(createErrorObject(parseJSONBody(body), response));
                             break;
                     }
                 }
