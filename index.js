@@ -3,7 +3,7 @@
 var fs = require('fs'),
     path = require('path'),
     extend = require('extend'),
-    https = require('https'),
+    https = require('http-https'),
     request = require('request'),
     querystring = require('querystring');
 
