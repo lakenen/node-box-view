@@ -75,7 +75,7 @@ Do a multipart upload from a file path or readable stream
 
 #### uploadURL
 
-`client.documents.uploadFile(url, [params,] callback)`
+`client.documents.uploadURL(url, [params,] callback)`
 
 Do a URL upload of a file
 * `url` - (`string`) A URL to a publicly-accessible file to upload
