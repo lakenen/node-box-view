@@ -2,9 +2,10 @@
 
 var fs = require('fs'),
     path = require('path'),
-    extend = require('extend'),
     https = require('http-https'),
+    extend = require('extend'),
     request = require('request'),
+    PassThrough = require('stream').PassThrough,
     querystring = require('querystring');
 
 var UPLOAD_BASE = 'https://upload.view-api.box.com/1/',
@@ -60,29 +61,6 @@ function createErrorObject(error, response) {
 }
 
 /**
- * Return a default http response handler that will be used in most API calls
- * @param   {Function} callback      The callback method to call
- * @param   {Array}    okStatusCodes (optional) HTTP status codes to use as OK (default: [200])
- * @returns {Function}               The response handler
- */
-function createDefaultResponseHandler(callback, okStatusCodes) {
-    okStatusCodes = okStatusCodes || [200];
-    return function handleResponse(error, response, body) {
-        if (error) {
-            callback(createErrorObject(error, response));
-        } else {
-            if (okStatusCodes.indexOf(response.statusCode) > -1) {
-                callback(null, parseJSONBody(body), response);
-            } else {
-                // the error will be in the response body (or if empty, return the default status text)
-                error = parseJSONBody(body) || statusText(response.statusCode);
-                callback(createErrorObject(error, response));
-            }
-        }
-    };
-}
-
-/**
  * Read JSON data from an http response
  * @param   {http.Response} response The http response
  * @param   {Function}      callback The callback to call with the data
@@ -97,6 +75,105 @@ function readResponse(response, callback) {
         callback(parseJSONBody(body));
     });
     response.on('error', callback);
+}
+
+/**
+ * Try to figure out the filename for the given file
+ * @param   {Stream} file The file stream
+ * @returns {string}      The guessed filename
+ */
+function determineFilename(file) {
+    var filename,
+        filenameMatch;
+
+    if (file.hasOwnProperty('httpVersion')) {
+        // it's an http response
+        // first let's check if there's a content-disposition header...
+        if (file.headers['content-disposition']) {
+            filenameMatch = /filename=(.*)/.exec(file.headers['content-disposition']);
+            filename = filenameMatch[1];
+        }
+        if (!filename) {
+            // try to get the path of the request url
+            filename = path.basename(file.client._httpMessage.path);
+        }
+    } else if (file.path) {
+        // it looks like a file, let's just get the path
+        filename = path.basename(file.path);
+    }
+    return filename || 'untitled document';
+}
+
+/**
+ * Return an http response handler for API calls
+ * @param   {Function} callback      The callback method to call
+ * @param   {Array}    okStatusCodes (optional) HTTP status codes to use as OK (default: [200])
+ * @param   {Function} retryFn       (optional) If defined, function to call when receiving a Retry-After header
+ * @param   {Boolean} isRawHttp      (optional) Specify whether this request is using the raw http/https module
+ * @returns {Function}               The response handler
+ */
+function createResponseHandler(callback, okStatusCodes, retryFn, isRawHttp) {
+    if (typeof okStatusCodes === 'function') {
+        retryFn = okStatusCodes;
+        okStatusCodes = null;
+    }
+    okStatusCodes = okStatusCodes || [200];
+
+    /**
+     * Retry the request if a retry function and retry-after headers are present
+     * @param   {HTTPResponse} response The response object
+     * @returns {void}
+     */
+    function retry(response) {
+        var retryAfter = response.headers['retry-after'];
+        if (typeof retryFn === 'function' && retryAfter) {
+            retryAfter = parseInt(retryAfter, 10);
+            setTimeout(retryFn, retryAfter * 1000);
+            return true;
+        }
+        return false;
+    }
+
+    function handleResponse(response, body) {
+        var error;
+        if (okStatusCodes.indexOf(response.statusCode) > -1) {
+            if (!retry(response)) {
+                if (body) {
+                    callback(null, parseJSONBody(body), response);
+                } else {
+                    callback(null, response);
+                }
+            }
+        } else {
+            if (response.statusCode === 429) {
+                if (retry(response)) {
+                    return;
+                }
+            }
+            // the error will be in the response body (or if empty, return the default status text)
+            if (body) {
+                error = parseJSONBody(body) || statusText(response.statusCode);
+                callback(createErrorObject(error, response));
+            } else {
+                // the response is in the body, but we haven't parsed it yet
+                readResponse(response, function (error) {
+                    callback(createErrorObject(error, response));
+                });
+            }
+        }
+    }
+
+    if (isRawHttp) {
+        return handleResponse;
+    }
+
+    return function (error, response, body) {
+        if (error) {
+            callback(createErrorObject(error, response));
+        } else {
+            handleResponse(response, body);
+        }
+    };
 }
 
 /**
@@ -127,15 +204,21 @@ function BoxView(key) {
          * @param   {Function} callback              A callback to call with the response data (or error)
          * @returns {void}
          */
-        list: function (params, callback) {
-            var query;
+        list: function (params, callback, retry) {
+            var query,
+                args = arguments;
 
             if (typeof params === 'function') {
+                retry = callback;
                 callback = params;
                 params = {};
             } else {
                 params = extend({}, params);
             }
+
+            retry = (retry === true) && function () {
+                this.list.apply(this, args);
+            }.bind(this);
 
             if (params['created_before']) {
                 params['created_before'] = getTimestamp(params['created_before']);
@@ -153,7 +236,7 @@ function BoxView(key) {
             req({
                 method: 'GET',
                 url: client.documentsURL + query
-            }, createDefaultResponseHandler(callback));
+            }, createResponseHandler(callback, retry));
         },
 
         /**
@@ -163,17 +246,23 @@ function BoxView(key) {
          * @param   {Function}     callback A callback to call with the response data (or error)
          * @returns {void}
          */
-        get: function (id, fields, callback) {
-            var query = '';
+        get: function (id, fields, callback, retry) {
+            var query = '',
+                args = arguments;
 
             if (Array.isArray(fields)) {
                 fields = fields.join(',');
             }
 
             if (typeof fields === 'function') {
+                retry = callback;
                 callback = fields;
                 fields = '';
             }
+
+            retry = (retry === true) && function () {
+                this.get.apply(this, args);
+            }.bind(this);
 
             if (fields) {
                 query = '?' + querystring.stringify({
@@ -184,7 +273,7 @@ function BoxView(key) {
             req({
                 method: 'GET',
                 url: client.documentsURL + '/' + id + query
-            }, createDefaultResponseHandler(callback));
+            }, createResponseHandler(callback, retry));
         },
 
         /**
@@ -194,12 +283,17 @@ function BoxView(key) {
          * @param   {Function} callback A callback to call with the response data (or error)
          * @returns {void}
          */
-        update: function (id, data, callback) {
+        update: function (id, data, callback, retry) {
+            var args = arguments;
+            retry = (retry === true) && function () {
+                this.update.apply(this, args);
+            }.bind(this);
+
             req({
                 method: 'PUT',
                 url: client.documentsURL + '/' + id,
                 body: JSON.stringify(data)
-            }, createDefaultResponseHandler(callback));
+            }, createResponseHandler(callback, retry));
         },
 
         /**
@@ -208,16 +302,21 @@ function BoxView(key) {
          * @param   {Function} callback A callback to call with the response data (or error)
          * @returns {void}
          */
-        delete: function (id, callback) {
+        delete: function (id, callback, retry) {
+            var args = arguments;
+            retry = (retry === true) && function () {
+                this.delete.apply(this, args);
+            }.bind(this);
+
             req({
                 method: 'DELETE',
                 url: client.documentsURL + '/' + id
-            }, createDefaultResponseHandler(callback, [204]));
+            }, createResponseHandler(callback, [204], retry));
         },
 
         /**
          * Do a multipart upload from a file path or readable stream
-         * @param   {String|Stream} file              A path to a file to read or a readable stream
+         * @param   {String|Stream|Buffer} file       A path to a file to read, a readable stream, or a Buffer
          * @param   {Object}        params            (optional) Upload parameters
          * @param   {String}        params.name       The name of the file
          * @param   {String}        params.thumbnails Comma-separated list of thumbnail dimensions of the format {width}x{height} e.g. 128×128,256×256 – width can be between 16 and 1024, height between 16 and 768
@@ -225,51 +324,76 @@ function BoxView(key) {
          * @param   {Function}      callback          A callback to call with the response data (or error)
          * @returns {void}
          */
-        uploadFile: function (file, params, callback) {
+        uploadFile: function (file, params, callback, retry) {
+            var args = arguments,
+                filename,
+                r,
+                param,
+                form,
+                source,
+                cached;
+
             if (typeof file === 'string') {
+                filename = file;
                 file = fs.createReadStream(file);
             }
 
             if (typeof params === 'function') {
+                retry = callback;
                 callback = params;
                 params = {};
             } else {
                 params = extend({}, params);
             }
 
+            retry = (retry === true) && function () {
+                this.uploadFile.apply(this, args);
+            }.bind(this);
+
+            // filename is required for the form to work properly, so try to
+            // figure out a name...
             if (!params.name) {
-                params.name = path.basename(file.path);
+                params.name = determineFilename(file);
             }
 
-            // get the file size so we can set the proper length
-            fs.stat(file.path, function (err, stat) {
-                var r, param, form;
+            if (retry && !Buffer.isBuffer(file)) {
+                source = file;
+                cached = new PassThrough();
+                file = new PassThrough();
+                source.pipe(file);
+                source.pipe(cached);
+                args[0] = cached;
 
-                if (err) {
-                    callback(err);
-                    return;
-                }
-
-                r = request({
-                    method: 'POST',
-                    url: client.documentsUploadURL,
-                    headers: {
-                        'Authorization': 'Token ' + key
-                    }
-                }, createDefaultResponseHandler(callback, [200, 202]));
-
-                // NOTE: r.form() automatically adds the 'content-type: multipart/form-data' header
-                form = r.form();
-                for (param in params) {
-                    if (params.hasOwnProperty(param)) {
-                        form.append(param, params[param].toString());
+                // copy relevant properties to the new stream objects
+                if (source.hasOwnProperty('httpVersion')) {
+                    file.httpVersion = cached.httpVersion = source.httpVersion;
+                    file.headers = cached.headers = source.headers;
+                    file.client = cached.client = source.client;
+                } else {
+                    if (source.path) {
+                        file.path = cached.path = source.path;
                     }
                 }
-                form.append('file', file, {
-                    // must provide file length manually, because this is a stream
-                    knownLength: stat.size
-                });
-            });
+            }
+
+            r = request({
+                method: 'POST',
+                url: client.documentsUploadURL,
+                headers: {
+                    'Authorization': 'Token ' + key
+                    // ,'Transfer-Encoding': 'chunked'
+                }
+            }, createResponseHandler(callback, [200, 202], retry));
+
+            // NOTE: r.form() automatically adds the 'content-type: multipart/form-data' header
+            form = r.form();
+            for (param in params) {
+                if (params.hasOwnProperty(param)) {
+                    form.append(param, params[param].toString());
+                }
+            }
+
+            form.append('file', file, { filename: params.name || filename });
         },
 
         /**
@@ -282,13 +406,20 @@ function BoxView(key) {
          * @param   {Function} callback          A callback to call with the response data (or error)
          * @returns {void}
          */
-        uploadURL: function (url, params, callback) {
+        uploadURL: function (url, params, callback, retry) {
+            var args = arguments;
+
             if (typeof params === 'function') {
+                retry = callback;
                 callback = params;
                 params = {};
             } else {
                 params = extend({}, params);
             }
+
+            retry = (retry === true) && function () {
+                this.uploadURL.apply(this, args);
+            }.bind(this);
 
             if (!params.name) {
                 params.name = path.basename(url);
@@ -299,7 +430,7 @@ function BoxView(key) {
                 method: 'POST',
                 url: client.documentsURL,
                 body: JSON.stringify(params)
-            }, createDefaultResponseHandler(callback, [200, 202]));
+            }, createResponseHandler(callback, [200, 202], retry));
         },
 
         /**
@@ -310,13 +441,12 @@ function BoxView(key) {
          * @param   {Function} callback  A callback to call with the response (or error)
          * @returns {void}
          */
-        getContent: function (id, extension, callback) {
+        getContent: function (id, extension, callback, retry) {
             var r, url,
-                retry = function () {
-                    this.getContent(id, extension, callback);
-                }.bind(this);
+                args = arguments;
 
             if (typeof extension === 'function') {
+                retry = callback;
                 callback = extension;
                 extension = '';
             } else if (extension) {
@@ -328,30 +458,17 @@ function BoxView(key) {
                 extension = '';
             }
 
+            retry = (retry === true) && function () {
+                this.getContent.apply(this, args);
+            }.bind(this);
+
             url = client.documentsURL + '/' + id + '/content' + extension;
-            r = https.request(url, function (response) {
-                var retryAfter;
-                switch (response.statusCode) {
-                    case 200:
-                        callback(null, response);
-                        break;
-                    case 202:
-                        retryAfter = response.headers['retry-after'];
-                        if (retryAfter) {
-                            setTimeout(retry, retryAfter * 1000);
-                        }
-                        break;
-                    default:
-                        // error
-                        readResponse(response, function (body) {
-                            callback(createErrorObject(body, response));
-                        });
-                        break;
-                }
-            });
+            r = https.request(url, createResponseHandler(callback, [200, 202], retry, true));
             r.setHeader('Authorization', 'Token ' + key);
             r.end();
-            r.on('error', callback);
+            r.on('error', function (error) {
+                callback(createErrorObject(error));
+            });
         },
 
         /**
@@ -363,36 +480,19 @@ function BoxView(key) {
          * @param   {Function} callback      A callback to call with the response (or error)
          * @returns {void}
          */
-        getThumbnail: function (id, params, callback) {
+        getThumbnail: function (id, params, callback, retry) {
             var r, url,
-                retry = function () {
-                    this.getThumbnail(id, params, callback);
-                }.bind(this);
+                args = arguments;
+
+            retry = (retry === true) && function () {
+                this.getThumbnail.apply(this, args);
+            }.bind(this);
 
             params = extend({}, params);
 
             // NOTE: query string params are require here
             url = client.documentsURL + '/' + id + '/thumbnail?' + querystring.stringify(params);
-            r = https.request(url, function (response) {
-                var retryAfter;
-                switch (response.statusCode) {
-                    case 200:
-                        callback(null, response);
-                        break;
-                    case 202:
-                        retryAfter = response.headers['retry-after'];
-                        if (retryAfter) {
-                            setTimeout(retry, retryAfter * 1000);
-                        }
-                        break;
-                    default:
-                        // error
-                        readResponse(response, function (body) {
-                            callback(createErrorObject(body, response));
-                        });
-                        break;
-                }
-            });
+            r = https.request(url, createResponseHandler(callback, [200, 202], retry, true));
             r.setHeader('Authorization', 'Token ' + key);
             r.end();
             r.on('error', function (err) {
@@ -413,17 +513,20 @@ function BoxView(key) {
          * @param   {Function} callback               A callback to call with the response data (or error)
          * @returns {void}
          */
-        create: function (id, params, callback) {
-            var retry = function () {
-                this.create(id, params, callback);
-            }.bind(this);
+        create: function (id, params, callback, retry) {
+            var args = arguments;
 
             if (typeof params === 'function') {
+                retry = callback;
                 callback = params;
                 params = {};
             } else {
                 params = extend({}, params);
             }
+
+            retry = (retry === true) && function () {
+                this.create.apply(this, args);
+            }.bind(this);
 
             params['document_id'] = id;
 
@@ -435,28 +538,7 @@ function BoxView(key) {
                 method: 'POST',
                 url: client.sessionsURL,
                 body: JSON.stringify(params)
-            }, function (error, response, body) {
-                var retryAfter;
-                if (error) {
-                    callback(createErrorObject(error, response));
-                } else {
-                    switch (response.statusCode) {
-                        case 201:
-                            callback(null, JSON.parse(body));
-                            break;
-                        case 202:
-                            retryAfter = response.headers['retry-after'];
-                            if (retryAfter) {
-                                setTimeout(retry, retryAfter * 1000);
-                            }
-                            break;
-                        default:
-                            // error
-                            callback(createErrorObject(parseJSONBody(body), response));
-                            break;
-                    }
-                }
-            });
+            }, createResponseHandler(callback, [201, 202], retry));
         }
     };
 }
