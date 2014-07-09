@@ -26,7 +26,7 @@ See the [Box View API Documentation](http://developers.box.com/view/) for a list
 
 #### list
 
-`client.documents.list([params,] callback)`
+`client.documents.list([params,] callback [,retry])`
 
 Fetch a list of documents uploaded using this API key.
 * `params` - (`object`) An optional map of URL parameters for filtering documents
@@ -34,36 +34,40 @@ Fetch a list of documents uploaded using this API key.
 * `params.created_before` - (`Date`) An upper limit on the creation timestamps of documents returned (default: now)
 * `params.created_after` - (`Date`)  A lower limit on the creation timestamps of documents returned
 * `callback` - (`function(error, response)`) A callback to call with the response data (or error)
+* `retry` - (`boolean`) Whether to retry the request after `retry-after` seconds if the retry-after header is sent (default: `false`)
 
 #### get
 
-`client.documents.get(id, [fields,] callback)`
+`client.documents.get(id, [fields,] callback [,retry])`
 
 Fetch the metadata for a single document.
 * `id` - (`string`) The document uuid
 * `fields` - (`Array` or `string`) An optional array or comma-separated list of fields to return (e.g., `['name', 'status']` or `'name,status'`); id and type are always returned
 * `callback` - (`function(error, response)`) A callback to call with the response data (or error)
+* `retry` - (`boolean`) Whether to retry the request after `retry-after` seconds if the retry-after header is sent (default: `false`)
 
 #### update
 
-`client.documents.update(id, data, callback)`
+`client.documents.update(id, data, callback [,retry])`
 
 Update the metadata for a single document
 * `id` - (`string`) The document uuid
 * `data` - (`object`) The new metadata (currently only `name` is supported)
 * `callback` - (`function(error, response)`) A callback to call with the response data (or error)
+* `retry` - (`boolean`) Whether to retry the request after `retry-after` seconds if the retry-after header is sent (default: `false`)
 
 #### delete
 
-`client.documents.delete(id, callback)`
+`client.documents.delete(id, callback [,retry])`
 
 Delete a single document
 * `id` - (`string`) The document uuid
 * `callback` - (`function(error, response)`) A callback to call with the response data (or error)
+* `retry` - (`boolean`) Whether to retry the request after `retry-after` seconds if the retry-after header is sent (default: `false`)
 
 #### uploadFile
 
-`client.documents.uploadFile(file, [params,] callback)`
+`client.documents.uploadFile(file, [params,] callback [,retry])`
 
 Do a multipart upload from a file path or readable stream
 * `file` - (`string` or `stream.Readable`) A path to a file to read or a readable stream
@@ -72,10 +76,11 @@ Do a multipart upload from a file path or readable stream
 * `params.thumbnails` - (`string`) Comma-separated list of thumbnail dimensions of the format `{width}x{height}` (e.g. `'128×128,256×256'`) – width can be between 16 and 1024, height between 16 and 768
 * `params.non_svg` - (`boolean`) Whether to also create the non-svg version of the document
 * `callback` - (`function(error, response)`) A callback to call with the response data (or error)
+* `retry` - (`boolean`) Whether to retry the request after `retry-after` seconds if the retry-after header is sent (default: `false`)
 
 #### uploadURL
 
-`client.documents.uploadURL(url, [params,] callback)`
+`client.documents.uploadURL(url, [params,] callback [,retry])`
 
 Do a URL upload of a file
 * `url` - (`string`) A URL to a publicly-accessible file to upload
@@ -84,16 +89,18 @@ Do a URL upload of a file
 * `params.thumbnails` - (`string`) Comma-separated list of thumbnail dimensions of the format `{width}x{height}` (e.g. `'128×128,256×256'`) – width can be between 16 and 1024, height between 16 and 768
 * `params.non_svg` - (`boolean`) Whether to also create the non-svg version of the document
 * `callback` - (`function(error, response)`) A callback to call with the response data (or error)
+* `retry` - (`boolean`) Whether to retry the request after `retry-after` seconds if the retry-after header is sent (default: `false`)
 
 #### getContent
 
-`client.documents.getContent(id, [extension,] callback)`
+`client.documents.getContent(id, [extension,] callback [,retry])`
 
 Fetches a document of a specified format.
 * If an extension is not specified, the document’s original format is returned.
 * `id` - (`string`) The document uuid
 * `extension` - (`string`) Optional document format to request (`'pdf'` or `'zip'`). If excluded, the original document format will be returned.
 * `callback` - (`function(error, response)`) A callback to call with the response (or error)
+* `retry` - (`boolean`) Whether to retry the request after `retry-after` seconds if the retry-after header is sent (default: `false`)
 
 Example:
 ```js
@@ -114,7 +121,7 @@ client.documents.getContent(id, 'zip', function (err, res) {
 
 #### getThumbnail
 
-`client.documents.getThumbnail(id, params, callback)`
+`client.documents.getThumbnail(id, params, callback [,retry])`
 
 Fetches a thumbnail for the given document id
 * `id` - (`string`) The document uuid
@@ -122,6 +129,7 @@ Fetches a thumbnail for the given document id
 * `params.width` - (`int`) The thumbnail width
 * `params.height` - (`int`) The thumbnail height
 * `callback` - (`function(error, response)`) A callback to call with the response (or error)
+* `retry` - (`boolean`) Whether to retry the request after `retry-after` seconds if the retry-after header is sent (default: `false`)
 
 Example:
 ```js
@@ -144,7 +152,7 @@ client.documents.getThumbnail(id, params, function (err, res) {
 
 #### create
 
-`client.sessions.create(id, [params,] callback)`
+`client.sessions.create(id, [params,] callback [,retry])`
 
 Request a viewing session for a documentRequest a viewing session for a document
 * `id` - (`string`) The document uuid
@@ -153,7 +161,7 @@ Request a viewing session for a documentRequest a viewing session for a document
 * `params.expires_at` - (`Date`) The timestamp at which the session should expire
 * `params.is_downloadable` - (`boolean`) Whether the original file will be available for download via GET /sessions/{id}/content while the session is active
 * `callback` - (`function(error, response)`) A callback to call with the response data (or error)
-
+* `retry` - (`boolean`) Whether to retry the request after `retry-after` seconds if the retry-after header is sent (default: `false`)
 
 ## Running Tests
 
