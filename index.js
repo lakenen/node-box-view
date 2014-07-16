@@ -462,6 +462,9 @@ function BoxView(key) {
 }
 
 module.exports = {
+    DOCUMENTS_UPLOAD_URL: DOCUMENTS_UPLOAD_URL,
+    DOCUMENTS_URL: DOCUMENTS_URL,
+    SESSIONS_URL: SESSIONS_URL,
     BoxView: BoxView,
     createClient: function (key) {
         return new BoxView(key);
