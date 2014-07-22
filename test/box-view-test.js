@@ -324,6 +324,41 @@ test('documents.getContent should retry requesting content when retry-after head
     });
 });
 
+test('documents.getThumbnail should retry requesting thumbnail when retry-after header is sent', function (t) {
+    t.plan(4);
+
+    var id = 'abc';
+    var request1 = nockAPI()
+        .get('/1/documents/' + id + '/thumbnail?width=200&height=100')
+        .reply(202, '', { 'retry-after': 0.001 }); // small retry-after for testing purposes
+    var request2 = nockAPI()
+        .get('/1/documents/' + id + '/thumbnail?width=200&height=100')
+        .replyWithFile(200, __dirname + '/files/thumbnail.png');
+
+    client.documents.getThumbnail(id, { width: 200, height: 100 }, function (err, response) {
+        t.notOk(err, 'should not be an error');
+        t.ok(response.readable, 'response should be a readble stream');
+        t.ok(request1.isDone(), 'request should be made properly');
+        t.ok(request2.isDone(), 'request should be made properly');
+    });
+});
+
+
+test('documents.getThumbnail should return the thumbnail as a readable stream when successful', function (t) {
+    t.plan(3);
+
+    var id = 'abc';
+    var request = nockAPI()
+        .get('/1/documents/' + id + '/thumbnail?width=200&height=100')
+        .replyWithFile(200, __dirname + '/files/thumbnail.png');
+
+    client.documents.getThumbnail(id, { width: 200, height: 100 }, function (err, response) {
+        t.notOk(err, 'should not be an error');
+        t.ok(response.readable, 'response should be a readble stream');
+        t.ok(request.isDone(), 'request should be made properly');
+    });
+});
+
 
 
 //////// SESSIONS /////////
