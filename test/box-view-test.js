@@ -290,6 +290,25 @@ test('uploadURL should make a url upload request with the proper params', functi
     });
 });
 
+test('documents.getContent should retry requesting content when retry-after header is sent and retry is true', function (t) {
+    t.plan(4);
+
+    var id = 'abc';
+    var request1 = nockAPI()
+        .get('/1/documents/' + id + '/content.pdf')
+        .reply(202, '', { 'retry-after': '0' });
+    var request2 = nockAPI()
+        .get('/1/documents/' + id + '/content.pdf')
+        .replyWithFile(200, __dirname + '/files/content.pdf');
+
+    client.documents.getContent(id, 'pdf', function (err, response) {
+        t.notOk(err, 'should not be an error');
+        t.ok(response.readable, 'response should be a readble stream');
+        t.ok(request1.isDone(), 'request should be made properly');
+        t.ok(request2.isDone(), 'request should be made properly');
+    }, true);
+});
+
 test('documents.getContent should return the document content as a readable stream when successful', function (t) {
     t.plan(3);
 
@@ -305,32 +324,13 @@ test('documents.getContent should return the document content as a readable stre
     });
 });
 
-test('documents.getContent should retry requesting content when retry-after header is sent', function (t) {
-    t.plan(4);
-
-    var id = 'abc';
-    var request1 = nockAPI()
-        .get('/1/documents/' + id + '/content.pdf')
-        .reply(202, '', { 'retry-after': 0.001 }); // small retry-after for testing purposes
-    var request2 = nockAPI()
-        .get('/1/documents/' + id + '/content.pdf')
-        .replyWithFile(200, __dirname + '/files/content.pdf');
-
-    client.documents.getContent(id, 'pdf', function (err, response) {
-        t.notOk(err, 'should not be an error');
-        t.ok(response.readable, 'response should be a readble stream');
-        t.ok(request1.isDone(), 'request should be made properly');
-        t.ok(request2.isDone(), 'request should be made properly');
-    });
-});
-
 test('documents.getThumbnail should retry requesting thumbnail when retry-after header is sent', function (t) {
     t.plan(4);
 
     var id = 'abc';
     var request1 = nockAPI()
         .get('/1/documents/' + id + '/thumbnail?width=200&height=100')
-        .reply(202, '', { 'retry-after': 0.001 }); // small retry-after for testing purposes
+        .reply(202, '', { 'retry-after': '0' }); // small retry-after for testing purposes
     var request2 = nockAPI()
         .get('/1/documents/' + id + '/thumbnail?width=200&height=100')
         .replyWithFile(200, __dirname + '/files/thumbnail.png');
@@ -340,9 +340,8 @@ test('documents.getThumbnail should retry requesting thumbnail when retry-after 
         t.ok(response.readable, 'response should be a readble stream');
         t.ok(request1.isDone(), 'request should be made properly');
         t.ok(request2.isDone(), 'request should be made properly');
-    });
+    }, true);
 });
-
 
 test('documents.getThumbnail should return the thumbnail as a readable stream when successful', function (t) {
     t.plan(3);
@@ -387,7 +386,7 @@ test('sessions.create should request a session when called', function (t) {
     });
 });
 
-test('sessions.create should retry requesting a session when retry-after header is sent', function (t) {
+test('sessions.create should retry requesting a session when retry-after header is sent and retry is true', function (t) {
     t.plan(4);
 
     var id = 'abc';
@@ -402,7 +401,7 @@ test('sessions.create should retry requesting a session when retry-after header 
         .post('/1/sessions', {
             'document_id': id
         })
-        .reply(202, '', { 'retry-after': 0.001 }); // small retry-after for testing purposes
+        .reply(202, '', { 'retry-after': '0' });
     var request2 = nockAPI()
         .post('/1/sessions', {
             'document_id': id
@@ -414,5 +413,5 @@ test('sessions.create should retry requesting a session when retry-after header 
         t.deepEqual(session, sess, 'session should be correct');
         t.ok(request1.isDone(), 'request should be made properly');
         t.ok(request2.isDone(), 'request should be made properly');
-    });
+    }, true);
 });
