@@ -146,7 +146,7 @@ client.documents.getThumbnail(id, params, function (err, res) {
 
 `client.sessions.create(id, [params,] callback)`
 
-Request a viewing session for a documentRequest a viewing session for a document
+Request a viewing session for a document
 * `id` - (`string`) The document uuid
 * `params` - (`object`) An optional map of session parameters
 * `params.duration` - (`int`) The duration in minutes until the session expires (default: 60)
