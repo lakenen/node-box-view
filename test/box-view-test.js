@@ -1,13 +1,29 @@
 var TOKEN = 'test api token';
 
 var fs = require('fs'),
-    test = require('tape'),
+    tape = require('tape'),
     nock = require('nock'),
     BoxView = require('../'),
     client = BoxView.createClient(TOKEN);
 
-// don't allow any http requests that we don't expect
-nock.disableNetConnect();
+
+function makeTest(fn) {
+    return function (t) {
+        // don't allow any http requests that we don't expect
+        nock.disableNetConnect();
+        t.on('end', function () {
+            nock.enableNetConnect();
+        });
+        fn(t);
+    };
+}
+
+function test(name, fn) {
+    tape(name, makeTest(fn));
+}
+test.only = function (name, fn) {
+    tape.only(name, makeTest(fn));
+};
 
 function nockAPI() {
     return nock('https://view-api.box.com', {
