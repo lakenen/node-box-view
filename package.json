@@ -7,7 +7,8 @@
     "test": "node_modules/.bin/tape test/box-view-test.js"
   },
   "browser": {
-    "form-data": false
+    "form-data": false,
+    "stream": false
   },
   "keywords": [
     "box",

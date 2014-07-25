@@ -69,8 +69,8 @@ Delete a single document
 
 `client.documents.uploadFile(file, [params,] callback [,retry])`
 
-Do a multipart upload from a file path or readable stream
-* `file` - (`string` or `stream.Readable`) A path to a file to read or a readable stream
+Do a multipart upload
+* `file` - (`string` or `stream.Readable` or `File` or `Buffer`) A path to a file to read, a readable stream, a File object (e.g., in a browser), or a Buffer
 * `params` - (`object`) An optional map of upload parameters
 * `params.name` - (`string`) The name of the file. If `params.name` is not set, it will be inferred from the file path.
 * `params.thumbnails` - (`string`) Comma-separated list of thumbnail dimensions of the format `{width}x{height}` (e.g. `'128×128,256×256'`) – width can be between 16 and 1024, height between 16 and 768

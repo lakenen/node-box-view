@@ -2,18 +2,14 @@
 
 'use strict';
 
-// use native FormData in a browser
-var FormData = (typeof window !== 'undefined') ?
-    window.FormData :
-    require('form-data');
-
-// fs must be declared separately, else browserify gets sad
+// fs must be declared separately, else browserify gets sad w/brfs transform
 var fs = require('fs');
 
 var path = require('path'),
     http = require('http-https'),
     concat = require('concat-stream'),
     extend = require('extend'),
+    FormData = require('./lib/form-data'),
     hyperquest = require('hyperquest'),
     PassThrough = require('stream').PassThrough,
     querystring = require('querystring');
@@ -425,7 +421,8 @@ function BoxView(key, options) {
                 params.name = determineFilename(file);
             }
 
-            if (retry && !Buffer.isBuffer(file) && (typeof window === 'undefined')) {
+            // if the file is a stream, we need to duplicate it
+            if (retry && file.readable) {
                 source = file;
                 cached = new PassThrough();
                 file = new PassThrough();
@@ -455,32 +452,13 @@ function BoxView(key, options) {
                 }
             }
 
-            if (form.pipe) {
-                form.append('file', file, { filename: params.name || filename });
-                extend(true, options, {
-                    headers: form.getHeaders()
-                });
-                r = req(client.documentsUploadURL, options, handler);
-                form.pipe(r);
-            } else {
-                // we're in a browser
-                form.append('file', file, params.name || filename);
-                options = extend(true, require('url').parse(client.documentsUploadURL), defaults, options);
-                r = http.request(options);
-                r.xhr.send(form);
-                r.on('response', function (res) {
-                    try {
-                        extend(res.headers, {
-                            'retry-after': r.xhr.getResponseHeader('retry-after')
-                        });
-                    } catch (err) {}
-                    handler(null, res);
-                });
-                r.on('error', function (err) {
-                    console.error(err);
-                    handler(err);
-                });
-            }
+            form.append('file', file, { filename: params.name || filename });
+            extend(true, options, {
+                headers: form.getHeaders()
+            });
+
+            r = req(client.documentsUploadURL, options, handler);
+            form.pipe(r);
             return r;
         },
 
