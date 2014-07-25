@@ -28,8 +28,7 @@ test.only = function (name, fn) {
 function nockAPI() {
     return nock('https://view-api.box.com', {
         reqheaders: {
-            'authorization': 'token ' + TOKEN,
-            'content-type': 'application/json'
+            'authorization': 'token ' + TOKEN
         }
     });
 }

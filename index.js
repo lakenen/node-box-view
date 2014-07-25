@@ -9,6 +9,7 @@ var FormData = (typeof window !== 'undefined') ?
 
 var fs = require('fs'),
     path = require('path'),
+    http = require('http-https'),
     concat = require('concat-stream'),
     extend = require('extend'),
     hyperquest = require('hyperquest'),
@@ -228,15 +229,15 @@ function createCallback(fn) {
  * @param {String} key The API token
  * @constructor
  */
-function BoxView(key) {
+function BoxView(key, options) {
     var client = this,
-        req = request.defaults({
+        defaults = extend(true, {
             headers: {
                 'authorization': 'token ' + key,
-                'content-type': 'application/json',
                 'user-agent': 'node-box-view@' + VERSION
             }
-        });
+        }, options || {}),
+        req = request.defaults(defaults);
 
     this.documentsURL = DOCUMENTS_URL;
     this.documentsUploadURL = DOCUMENTS_UPLOAD_URL;
@@ -336,7 +337,13 @@ function BoxView(key) {
         update: function (id, data, callback, retry) {
             var args = arguments,
                 r,
-                handler;
+                handler,
+                options = {
+                    method: 'PUT',
+                    headers: {
+                        'content-type': 'application/json'
+                    }
+                };
 
             retry = (retry === true) && function () {
                 this.update.apply(this, args);
@@ -345,7 +352,7 @@ function BoxView(key) {
             callback = createBufferedCallback(callback);
             handler = createResponseHandler(callback, retry);
 
-            r = req(client.documentsURL + '/' + id, { method: 'PUT' }, handler);
+            r = req(client.documentsURL + '/' + id, options, handler);
             r.end(JSON.stringify(data));
             return r;
         },
@@ -390,8 +397,7 @@ function BoxView(key) {
                 cached,
                 handler,
                 options = {
-                    method: 'POST',
-                    headers: {}
+                    method: 'POST'
                 };
 
             if (typeof file === 'string') {
@@ -417,7 +423,7 @@ function BoxView(key) {
                 params.name = determineFilename(file);
             }
 
-            if (retry && !Buffer.isBuffer(file)) {
+            if (retry && !Buffer.isBuffer(file) && (typeof window === 'undefined')) {
                 source = file;
                 cached = new PassThrough();
                 file = new PassThrough();
@@ -446,13 +452,33 @@ function BoxView(key) {
                     form.append(param, params[param].toString());
                 }
             }
-            form.append('file', file, { filename: params.name || filename });
 
-            extend(true, options, {
-                headers: form.getHeaders()
-            });
-            r = req(client.documentsUploadURL, options, handler);
-            form.pipe(r);
+            if (form.pipe) {
+                form.append('file', file, { filename: params.name || filename });
+                extend(true, options, {
+                    headers: form.getHeaders()
+                });
+                r = req(client.documentsUploadURL, options, handler);
+                form.pipe(r);
+            } else {
+                // we're in a browser
+                form.append('file', file, params.name || filename);
+                options = extend(true, require('url').parse(client.documentsUploadURL), defaults, options);
+                r = http.request(options);
+                r.xhr.send(form);
+                r.on('response', function (res) {
+                    try {
+                        extend(res.headers, {
+                            'retry-after': r.xhr.getResponseHeader('retry-after')
+                        });
+                    } catch (err) {}
+                    handler(null, res);
+                });
+                r.on('error', function (err) {
+                    console.error(err);
+                    handler(err);
+                });
+            }
             return r;
         },
 
@@ -469,7 +495,13 @@ function BoxView(key) {
         uploadURL: function (url, params, callback, retry) {
             var args = arguments,
                 r,
-                handler;
+                handler,
+                options = {
+                    method: 'POST',
+                    headers: {
+                        'content-type': 'application/json'
+                    }
+                };
 
             if (typeof params === 'function') {
                 retry = callback;
@@ -492,7 +524,7 @@ function BoxView(key) {
             callback = createBufferedCallback(callback);
             handler = createResponseHandler(callback, [200, 202], retry);
 
-            r = req(client.documentsURL, { method: 'POST' }, handler);
+            r = req(client.documentsURL, options, handler);
             r.end(JSON.stringify(params));
             return r;
         },
@@ -579,7 +611,13 @@ function BoxView(key) {
         create: function (id, params, callback, retry) {
             var args = arguments,
                 r,
-                handler;
+                handler,
+                options = {
+                    method: 'POST',
+                    headers: {
+                        'content-type': 'application/json'
+                    }
+                };
 
             if (typeof params === 'function') {
                 retry = callback;
@@ -602,7 +640,7 @@ function BoxView(key) {
             callback = createBufferedCallback(callback);
             handler = createResponseHandler(callback, [201, 202], retry);
 
-            r = req(client.sessionsURL, { method: 'POST' } , handler);
+            r = req(client.sessionsURL, options, handler);
             r.end(JSON.stringify(params));
             return r;
         }
@@ -614,7 +652,7 @@ module.exports = {
     DOCUMENTS_URL: DOCUMENTS_URL,
     SESSIONS_URL: SESSIONS_URL,
     BoxView: BoxView,
-    createClient: function (key) {
-        return new BoxView(key);
+    createClient: function (token, options) {
+        return new BoxView(token, options);
     }
 };
