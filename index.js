@@ -7,8 +7,10 @@ var FormData = (typeof window !== 'undefined') ?
     window.FormData :
     require('form-data');
 
-var fs = require('fs'),
-    path = require('path'),
+// fs must be declared separately, else browserify gets sad
+var fs = require('fs');
+
+var path = require('path'),
     http = require('http-https'),
     concat = require('concat-stream'),
     extend = require('extend'),

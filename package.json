@@ -6,6 +6,9 @@
   "scripts": {
     "test": "node_modules/.bin/tape test/box-view-test.js"
   },
+  "browser": {
+    "form-data": false
+  },
   "keywords": [
     "box",
     "box view",

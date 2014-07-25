@@ -9,7 +9,6 @@ var fs = require('fs'),
 test('documents.uploadFile should upload the given file when called with a filename', function (t) {
     t.plan(2);
     client.documents.uploadFile(__dirname + '/files/content.pdf', function (err, doc) {
-        console.log(err)
         t.notOk(!!err, 'should not be error');
         t.equal(doc.type, 'document', 'should be a document');
     }, true);
