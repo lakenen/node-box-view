@@ -8,7 +8,6 @@ var path = require('path'),
     extend = require('extend'),
     FormData = require('./lib/form-data'),
     hyperquest = require('hyperquest'),
-    PassThrough = require('stream').PassThrough,
     querystring = require('querystring');
 
 var VERSION = require('./package').version,
@@ -169,8 +168,6 @@ function createResponseHandler(callback, okStatusCodes, noBuffer, retryFn) {
     }
 
     function handleResponse(response, body) {
-        var error;
-
         // the handler expects a parsed response body
         if (noBuffer !== true && typeof body === 'undefined') {
             response.pipe(concat(function (body) {
@@ -552,7 +549,13 @@ function BoxView(key, options) {
             handler = createResponseHandler(callback, [200, 202], true, retry);
 
             url = client.documentsURL + '/' + id + '/content' + extension;
-            return req(url, handler);
+            var r = req(url, handler);
+            r.on('request', function (re) {
+                if (re.xhr) {
+                    re.xhr.responseType = 'arraybuffer';
+                }
+            });
+            return r;
         },
 
         /**
@@ -593,7 +596,13 @@ function BoxView(key, options) {
 
             query = querystring.stringify(params);
             url = client.documentsURL + '/' + id + '/thumbnail?' + query;
-            return req(url, handler);
+            var r = req(url, handler);
+            r.on('request', function (re) {
+                if (re.xhr) {
+                    re.xhr.responseType = 'arraybuffer';
+                }
+            });
+            return r;
         }
     };
 
