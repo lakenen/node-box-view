@@ -1,12 +1,9 @@
-/*global window*/
-
 'use strict';
 
 // fs must be declared separately, else browserify gets sad w/brfs transform
 var fs = require('fs');
 
 var path = require('path'),
-    http = require('http-https'),
     concat = require('concat-stream'),
     extend = require('extend'),
     FormData = require('./lib/form-data'),
