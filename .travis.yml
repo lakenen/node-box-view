@@ -1,5 +1,8 @@
 language: node_js
 node_js:
   - "0.10"
+script:
+  - "node_modules/.bin/tape test/box-view-test.js"
+  - "node_modules/.bin/tape test/api-test.js"
 env:
   - secure: "cdBiOzRbcdQlohU+pm6JCuCuZsP0fSH2CXguiIaz7MuFpLhALrvYzAwsOL+lTz/s8ZKQf5Um92CpCfGGKVrL6F9jHEM1E/PaI22ZSUIXce5/Vdq/sv26g6Aph5oXkM/zSGUJskMIKoeJXBxxAokT5b9CFeR0s1Ty1EBP4ezzowg="
