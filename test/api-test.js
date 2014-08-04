@@ -8,28 +8,28 @@ var fs = require('fs'),
 
 test('documents.uploadFile should upload the given file when called with a filename', function (t) {
     t.plan(2);
-    client.documents.uploadFile(__dirname + '/files/content.pdf', function (err, doc) {
+    client.documents.uploadFile(__dirname + '/files/content.pdf', { retry: true }, function (err, doc) {
         t.notOk(!!err, 'should not be error');
         t.equal(doc.type, 'document', 'should be a document');
-    }, true);
+    });
 });
 
 test('documents.uploadFile should upload the given file when called with a file stream', function (t) {
     t.plan(2);
     var file = fs.createReadStream(__dirname + '/files/content.pdf');
-    client.documents.uploadFile(file, function (err, doc) {
+    client.documents.uploadFile(file, { retry: true }, function (err, doc) {
         t.notOk(!!err, 'should not be error');
         t.equal(doc.type, 'document', 'should be a document');
-    }, true);
+    });
 });
 
 test('documents.uploadFile should upload the given file when called with a buffer', function (t) {
     t.plan(2);
     var file = fs.readFileSync(__dirname + '/files/content.pdf');
-    client.documents.uploadFile(file, function (err, doc) {
+    client.documents.uploadFile(file, { retry: true }, function (err, doc) {
         t.notOk(!!err, 'should not be error');
         t.equal(doc.type, 'document', 'should be a document');
-    }, true);
+    });
 });
 
 test('documents.uploadFile should upload the given file when called with an http response w/ content-disposition+filename header', function (t) {
@@ -45,12 +45,12 @@ test('documents.uploadFile should upload the given file when called with an http
     }).listen(0, function () {
         var port = server.address().port;
         http.get('http://localhost:' + port, function (res) {
-            client.documents.uploadFile(res, function (err, doc) {
+            client.documents.uploadFile(res, { retry: true }, function (err, doc) {
                 t.notOk(!!err, 'should not be error');
                 t.equal(doc.type, 'document', 'should be a document');
                 t.equal(doc.name, 'content-disposition.pdf', 'should be the correct name');
                 server.close();
-            }, true);
+            });
         });
     });
 });
@@ -67,12 +67,12 @@ test('documents.uploadFile should upload the given file when called with an http
     }).listen(0, function () {
         var port = server.address().port;
         http.get('http://localhost:' + port + '/pathname.pdf', function (res) {
-            client.documents.uploadFile(res, function (err, doc) {
+            client.documents.uploadFile(res, { retry: true }, function (err, doc) {
                 t.notOk(!!err, 'should not be error');
                 t.equal(doc.type, 'document', 'should be a document');
                 t.equal(doc.name, 'pathname.pdf', 'should be the correct name');
                 server.close();
-            }, true);
+            });
         });
     });
 });
@@ -89,12 +89,12 @@ test('documents.uploadFile should provide a default filename when a filename can
     }).listen(0, function () {
         var port = server.address().port;
         http.get('http://localhost:' + port + '/', function (res) {
-            client.documents.uploadFile(res, function (err, doc) {
+            client.documents.uploadFile(res, { retry: true }, function (err, doc) {
                 t.notOk(!!err, 'should not be error');
                 t.equal(doc.type, 'document', 'should be a document');
                 t.equal(doc.name, 'untitled document', 'should be the correct name');
                 server.close();
-            }, true);
+            });
         });
     });
 });

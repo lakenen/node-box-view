@@ -199,7 +199,7 @@ function createResponseHandler(callback, okStatusCodes, retryFn) {
 function createBufferedCallback(fn) {
     if (typeof fn === 'function') {
         return function (err, res, body) {
-            fn(err, body);
+            fn(err, body, res);
         };
     }
     return function () {};
@@ -241,24 +241,28 @@ function BoxView(key, options) {
     this.documents = {
         /**
          * Fetch a list of documents uploaded using this API key
-         * @param   {Object}   params                (optional) URL parameters
-         * @param   {int}      params.limit          The number of documents to return (default: 10, max: 50)
-         * @param   {Date}     params.created_before An upper limit on the creation timestamps of documents returned (default: now)
-         * @param   {Date}     params.created_after  A lower limit on the creation timestamps of documents returned
-         * @param   {Function} callback              A callback to call with the response data (or error)
-         * @returns {void}
+         * @param   {Object}   [options]                        List options
+         * @param   {boolean}  [options.retry]                  Whether to retry the request after 'retry-after' seconds if the retry-after header is sent
+         * @param   {Object}   [options.params]                 URL parameters
+         * @param   {int}      [options.params.limit]           The number of documents to return (default: 10, max: 50)
+         * @param   {Date}     [options.params.created_before]  An upper limit on the creation timestamps of documents returned (default: now)
+         * @param   {Date}     [options.params.created_after]   A lower limit on the creation timestamps of documents returned
+         * @param   {Function} [callback]                       A callback to call with the response data (or error)
+         * @returns {Request}
          */
-        list: function (params, callback, retry) {
+        list: function (options, callback) {
             var query,
                 handler,
+                retry = false,
+                params,
                 args = arguments;
 
-            if (typeof params === 'function') {
-                retry = callback;
-                callback = params;
+            if (typeof options === 'function') {
+                callback = options;
                 params = {};
             } else {
-                params = extend({}, params);
+                params = extend({}, options.params);
+                retry = options.retry;
             }
 
             retry = (retry === true) && function () {
@@ -286,24 +290,31 @@ function BoxView(key, options) {
 
         /**
          * Fetch the metadata for a single document
-         * @param   {String}       id       The document uuid
-         * @param   {String|Array} fields   (optional) Array of strings or comma-separated string of fields to return. id and type are always returned.
-         * @param   {Function}     callback A callback to call with the response data (or error)
-         * @returns {void}
+         * @param   {String}        id                  The document uuid
+         * @param   {Object}        [options]           Get options
+         * @param   {boolean}       [options.retry]     Whether to retry the request after 'retry-after' seconds if the retry-after header is sent
+         * @param   {String|Array}  [options.fields]    Array of strings or comma-separated string of fields to return. id and type are always returned.
+         * @param   {Function}      [callback]          A callback to call with the response data (or error)
+         * @returns {Request}
          */
-        get: function (id, fields, callback, retry) {
+        get: function (id, options, callback) {
             var query = '',
                 handler,
+                retry = false,
+                fields,
                 args = arguments;
+
+            if (typeof options === 'function') {
+                callback = options;
+                fields = '';
+            } else {
+                options = extend({}, options);
+                fields = options.fields || '';
+                retry = options.retry;
+            }
 
             if (Array.isArray(fields)) {
                 fields = fields.join(',');
-            }
-
-            if (typeof fields === 'function') {
-                retry = callback;
-                callback = fields;
-                fields = '';
             }
 
             retry = (retry === true) && function () {
@@ -324,21 +335,31 @@ function BoxView(key, options) {
 
         /**
          * Update the metadata for a single document
-         * @param   {String}   id       The document uuid
-         * @param   {Object}   data     The new metadata
-         * @param   {Function} callback A callback to call with the response data (or error)
-         * @returns {void}
+         * @param   {String}   id               The document uuid
+         * @param   {Object}   data             The new metadata
+         * @param   {Object}   [options]        Update options
+         * @param   {boolean}  [options.retry]  Whether to retry the request after 'retry-after' seconds if the retry-after header is sent
+         * @param   {Function} [callback]       A callback to call with the response data (or error)
+         * @returns {Request}
          */
-        update: function (id, data, callback, retry) {
+        update: function (id, data, options, callback) {
             var args = arguments,
                 r,
                 handler,
-                options = {
+                retry = false,
+                requestOptions = {
                     method: 'PUT',
                     headers: {
                         'content-type': 'application/json'
                     }
                 };
+
+            if (typeof options === 'function') {
+                callback = options;
+            } else {
+                options = extend({}, options);
+                retry = options.retry;
+            }
 
             retry = (retry === true) && function () {
                 this.update.apply(this, args);
@@ -347,20 +368,30 @@ function BoxView(key, options) {
             callback = createBufferedCallback(callback);
             handler = createResponseHandler(callback, retry);
 
-            r = req(client.documentsURL + '/' + id, options, handler);
+            r = req(client.documentsURL + '/' + id, requestOptions, handler);
             r.end(JSON.stringify(data));
             return r;
         },
 
         /**
          * Delete a single document
-         * @param   {String}   id       The document uuid
-         * @param   {Function} callback A callback to call with the response data (or error)
-         * @returns {void}
+         * @param   {String}   id               The document uuid
+         * @param   {Object}   [options]        Delete options
+         * @param   {boolean}  [options.retry]  Whether to retry the request after 'retry-after' seconds if the retry-after header is sent
+         * @param   {Function} [callback]       A callback to call with the response data (or error)
+         * @returns {Request}
          */
-        delete: function (id, callback, retry) {
+        delete: function (id, options, callback) {
             var args = arguments,
+                retry = false,
                 handler;
+
+            if (typeof options === 'function') {
+                callback = options;
+            } else {
+                options = extend({}, options);
+                retry = options.retry;
+            }
 
             retry = (retry === true) && function () {
                 this.delete.apply(this, args);
@@ -374,15 +405,17 @@ function BoxView(key, options) {
 
         /**
          * Do a multipart upload from a file path or readable stream
-         * @param   {String|Stream|Buffer} file       A path to a file to read, a readable stream, or a Buffer
-         * @param   {Object}        params            (optional) Upload parameters
-         * @param   {String}        params.name       The name of the file
-         * @param   {String}        params.thumbnails Comma-separated list of thumbnail dimensions of the format {width}x{height} e.g. 128×128,256×256 – width can be between 16 and 1024, height between 16 and 768
-         * @param   {Boolean}       params.non_svg    Whether to also create the non-svg version of the document
-         * @param   {Function}      callback          A callback to call with the response data (or error)
-         * @returns {void}
+         * @param   {String|Stream|Buffer}  file                        A path to a file to read, a readable stream, or a Buffer
+         * @param   {Object}                [options]                   Upload options
+         * @param   {boolean}               [options.retry]             Whether to retry the request after 'retry-after' seconds if the retry-after header is sent
+         * @param   {Object}                [options.params]            Upload parameters
+         * @param   {String}                [options.params.name]       The name of the file
+         * @param   {String}                [options.params.thumbnails] Comma-separated list of thumbnail dimensions of the format {width}x{height} e.g. 128×128,256×256 – width can be between 16 and 1024, height between 16 and 768
+         * @param   {Boolean}               [options.params.non_svg]    Whether to also create the non-svg version of the document
+         * @param   {Function}              [callback]                  A callback to call with the response data (or error)
+         * @returns {Request}
          */
-        uploadFile: function (file, params, callback, retry) {
+        uploadFile: function (file, options, callback) {
             var args = arguments,
                 filename,
                 r,
@@ -391,7 +424,9 @@ function BoxView(key, options) {
                 source,
                 cached,
                 handler,
-                options = {
+                params,
+                retry = false,
+                requestOptions = {
                     method: 'POST'
                 };
 
@@ -400,12 +435,13 @@ function BoxView(key, options) {
                 file = fs.createReadStream(file);
             }
 
-            if (typeof params === 'function') {
-                retry = callback;
-                callback = params;
+            if (typeof options === 'function') {
+                callback = options;
                 params = {};
             } else {
-                params = extend({}, params);
+                options = extend({}, options);
+                params = extend({}, options.params);
+                retry = options.retry;
             }
 
             retry = (retry === true) && function () {
@@ -450,42 +486,47 @@ function BoxView(key, options) {
             }
 
             form.append('file', file, { filename: params.name || filename });
-            extend(true, options, {
+            extend(true, requestOptions, {
                 headers: form.getHeaders()
             });
 
-            r = req(client.documentsUploadURL, options, handler);
+            r = req(client.documentsUploadURL, requestOptions, handler);
             form.pipe(r);
             return r;
         },
 
         /**
          * Do a URL upload of a file
-         * @param   {String}   url               A URL to a publicly-accessible file to upload
-         * @param   {Object}   params            (optional) Upload parameters
-         * @param   {String}   params.name       The name of the file
-         * @param   {String}   params.thumbnails Comma-separated list of thumbnail dimensions of the format {width}x{height} e.g. 128×128,256×256 – width can be between 16 and 1024, height between 16 and 768
-         * @param   {Boolean}  params.non_svg    Whether to also create the non-svg version of the document
-         * @param   {Function} callback          A callback to call with the response data (or error)
-         * @returns {void}
+         * @param   {String}   url                         A URL to a publicly-accessible file to upload
+         * @param   {Object}   [options]                   Upload options
+         * @param   {boolean}  [options.retry]             Whether to retry the request after 'retry-after' seconds if the retry-after header is sent
+         * @param   {Object}   [options.params]            Upload parameters
+         * @param   {String}   [options.params.name]       The name of the file
+         * @param   {String}   [options.params.thumbnails] Comma-separated list of thumbnail dimensions of the format {width}x{height} e.g. 128×128,256×256 – width can be between 16 and 1024, height between 16 and 768
+         * @param   {Boolean}  [options.params.non_svg]    Whether to also create the non-svg version of the document
+         * @param   {Function} [callback]                  A callback to call with the response data (or error)
+         * @returns {Request}
          */
-        uploadURL: function (url, params, callback, retry) {
+        uploadURL: function (url, options, callback) {
             var args = arguments,
                 r,
                 handler,
-                options = {
+                params,
+                retry = false,
+                requestOptions = {
                     method: 'POST',
                     headers: {
                         'content-type': 'application/json'
                     }
                 };
 
-            if (typeof params === 'function') {
-                retry = callback;
-                callback = params;
+            if (typeof options === 'function') {
+                callback = options;
                 params = {};
             } else {
-                params = extend({}, params);
+                options = extend({}, options);
+                params = extend({}, options.params);
+                retry = options.retry;
             }
 
             retry = (retry === true) && function () {
@@ -501,7 +542,7 @@ function BoxView(key, options) {
             callback = createBufferedCallback(callback);
             handler = createResponseHandler(callback, [200, 202], retry);
 
-            r = req(client.documentsURL, options, handler);
+            r = req(client.documentsURL, requestOptions, handler);
             r.end(JSON.stringify(params));
             return r;
         },
@@ -509,27 +550,31 @@ function BoxView(key, options) {
         /**
          * Fetches a document in the form specified by `extension`, which can be `pdf` or `zip`.
          * If an extension is not specified, the document’s original format is returned.
-         * @param   {string}   id        The document uuid
-         * @param   {string}   extension (optional) The document format to request
-         * @param   {Function} callback  A callback to call with the response (or error)
-         * @returns {void}
+         * @param   {string}   id                   The document uuid
+         * @param   {Object}   [options]            Content options
+         * @param   {boolean}  [options.retry]      Whether to retry the request after 'retry-after' seconds if the retry-after header is sent
+         * @param   {string}   [options.extension]  The document format to request
+         * @param   {Function} [callback]           A callback to call with the response (or error)
+         * @returns {Request}
          */
-        getContent: function (id, extension, callback, retry) {
+        getContent: function (id, options, callback) {
             var args = arguments,
+                retry = false,
+                extension,
                 url,
                 handler;
 
-            if (typeof extension === 'function') {
-                retry = callback;
-                callback = extension;
+            if (typeof options === 'function') {
+                callback = options;
                 extension = '';
-            } else if (extension) {
+            } else {
+                options = extend({}, options);
+                retry = options.retry;
+                extension = options.extension || '';
                 // add a . if there is an extension
-                if (!/^\./.test(extension)) {
+                if (extension && !/^\./.test(extension)) {
                     extension = '.' + extension;
                 }
-            } else {
-                extension = '';
             }
 
             retry = (retry === true) && function () {
@@ -545,24 +590,37 @@ function BoxView(key, options) {
 
         /**
          * Fetches a thumbnail for the given document id
-         * @param   {string}   id            The document uuid
-         * @param   {Object}   params        (required) The thumbnail params
-         * @param   {int}      params.width  The thumbnail width
-         * @param   {int}      params.height The thumbnail height
-         * @param   {Function} callback      A callback to call with the response (or error)
-         * @returns {void}
+         * @param   {string}   id               The document uuid
+         * @param   {int}      width            The thumbnail width
+         * @param   {int}      height           The thumbnail height
+         * @param   {Object}   [options]        Content options
+         * @param   {boolean}  [options.retry]  Whether to retry the request after 'retry-after' seconds if the retry-after header is sent
+         * @param   {Function} [callback]       A callback to call with the response (or error)
+         * @returns {Request}
          */
-        getThumbnail: function (id, params, callback, retry) {
+        getThumbnail: function (id, width, height, options, callback) {
             var args = arguments,
                 url,
                 query,
+                retry = false,
+                params,
                 handler;
+
+            if (typeof options === 'function') {
+                callback = options;
+            } else {
+                options = extend({}, options);
+                retry = options.retry;
+            }
 
             retry = (retry === true) && function () {
                 this.getThumbnail.apply(this, args);
             }.bind(this);
 
-            params = extend({}, params);
+            params = {
+                width: width,
+                height: height
+            };
 
             callback = createCallback(callback);
             handler = createResponseHandler(callback, [200, 202], retry);
@@ -577,31 +635,36 @@ function BoxView(key, options) {
 
         /**
          * Request a viewing session for a document
-         * @param   {String}   id                     The document uuid
-         * @param   {Object}   params                 (optional) Session parameters
-         * @param   {int}      params.duration        The duration in minutes until the session expires (default: 60)
-         * @param   {Date}     params.expires_at      The timestamp at which the session should expire
-         * @param   {boolean}  params.is_downloadable Whether a the original file will be available for download via GET /sessions/{id}/content while the session is active
-         * @param   {Function} callback               A callback to call with the response data (or error)
+         * @param   {String}   id                               The document uuid
+         * @param   {Object}   [options]                        Session options
+         * @param   {boolean}  [options.retry]                  Whether to retry the request after 'retry-after' seconds if the retry-after header is sent
+         * @param   {Object}   [options.params]                 Session parameters
+         * @param   {int}      [options.params.duration]        The duration in minutes until the session expires (default: 60)
+         * @param   {Date}     [options.params.expires_at]      The timestamp at which the session should expire
+         * @param   {boolean}  [options.params.is_downloadable] Whether a the original file will be available for download via GET /sessions/{id}/content while the session is active
+         * @param   {Function} [callback]                       A callback to call with the response data (or error)
          * @returns {void}
          */
-        create: function (id, params, callback, retry) {
+        create: function (id, options, callback) {
             var args = arguments,
                 r,
                 handler,
-                options = {
+                params,
+                retry = false,
+                requestOptions = {
                     method: 'POST',
                     headers: {
                         'content-type': 'application/json'
                     }
                 };
 
-            if (typeof params === 'function') {
-                retry = callback;
-                callback = params;
+            if (typeof options === 'function') {
+                callback = options;
                 params = {};
             } else {
-                params = extend({}, params);
+                options = extend({}, options);
+                params = extend({}, options.params);
+                retry = options.retry;
             }
 
             retry = (retry === true) && function () {
@@ -617,7 +680,7 @@ function BoxView(key, options) {
             callback = createBufferedCallback(callback);
             handler = createResponseHandler(callback, [201, 202], retry);
 
-            r = req(client.sessionsURL, options, handler);
+            r = req(client.sessionsURL, requestOptions, handler);
             r.end(JSON.stringify(params));
             return r;
         }
