@@ -6,6 +6,10 @@
   "scripts": {
     "test": "node_modules/.bin/tape test/box-view-test.js"
   },
+  "browser": {
+    "form-data": false,
+    "stream": false
+  },
   "keywords": [
     "box",
     "box view",
@@ -26,12 +30,17 @@
     }
   ],
   "dependencies": {
+    "concat-stream": "^1.4.6",
     "extend": "^1.2.1",
+    "form-data": "^0.1.4",
     "http-https": "^1.0.0",
+    "hyperquest": "^0.3.0",
+    "multipart-stream": "^1.0.0",
+    "nock": "^0.42.2",
     "request": "^2.39.0"
   },
   "devDependencies": {
-    "tape": "^2.13.2",
-    "nock": "^0.36.2"
+    "nock": "^0.42.3",
+    "tape": "^2.13.2"
   }
 }
