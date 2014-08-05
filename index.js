@@ -417,7 +417,6 @@ function BoxView(key, options) {
          */
         uploadFile: function (file, options, callback) {
             var args = arguments,
-                filename,
                 r,
                 param,
                 form,
@@ -431,7 +430,6 @@ function BoxView(key, options) {
                 };
 
             if (typeof file === 'string') {
-                filename = file;
                 file = fs.createReadStream(file);
             }
 
@@ -459,8 +457,14 @@ function BoxView(key, options) {
                 source = file;
                 cached = new PassThrough();
                 file = new PassThrough();
+
+                // switch to old style streams to make it work properly with
+                // form-data
+                source.resume();
+
                 source.pipe(file);
                 source.pipe(cached);
+
                 args[0] = cached;
 
                 // copy relevant properties to the new stream objects
@@ -485,7 +489,7 @@ function BoxView(key, options) {
                 }
             }
 
-            form.append('file', file, { filename: params.name || filename });
+            form.append('file', file, { filename: params.name });
             extend(true, requestOptions, {
                 headers: form.getHeaders()
             });
