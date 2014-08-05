@@ -72,7 +72,7 @@ test('documents.list should request the appropriate docs when filters are applie
         .get('/1/documents?' + require('querystring').stringify(params))
         .reply(200, []);
 
-    client.documents.list(params, function (err) {
+    client.documents.list({ params: params }, function (err) {
         t.notOk(err, 'should not be an error');
         t.ok(request.isDone(), 'request should be made properly');
     });
@@ -121,13 +121,13 @@ test('documents.update should return the document when the document is updated s
 
     var id = 'abc',
         doc1 = { id: id, name: 'bar', status: 'done', 'created_at': '2014-06-02T18:30:57Z' },
-        params = { name: 'bar' };
+        data = { name: 'bar' };
 
     var request = nockAPI()
-        .put('/1/documents/' + id, params)
+        .put('/1/documents/' + id, data)
         .reply(200, doc1);
 
-    client.documents.update(id, params, function (err, doc) {
+    client.documents.update(id, data, function (err, doc) {
         t.notOk(err, 'should not be an error');
         t.deepEqual(doc1, doc, 'should be a doc');
         t.ok(request.isDone(), 'request should be made properly');
@@ -143,13 +143,13 @@ test('documents.update should return an error when the document is not found', f
             type: 'error',
             'request_id': 'abcxyz'
         },
-        params = { name: 'bar' };
+        data = { name: 'bar' };
 
     var request = nockAPI()
-        .put('/1/documents/' + id, params)
+        .put('/1/documents/' + id, data)
         .reply(404, err);
 
-    client.documents.update(id, params, function (err, doc) {
+    client.documents.update(id, data, function (err, doc) {
         t.ok(err, 'should be an error');
         t.notOk(doc, 'should not be a doc');
         t.ok(request.isDone(), 'request should be made properly');
@@ -227,7 +227,7 @@ test('uploadFile should make a file upload request properly when given extra opt
     t.plan(3);
 
     var doc1 = { some: 'stuff' },
-        options = {
+        params = {
             'non_svg': true,
             name: 'test file'
         };
@@ -236,7 +236,7 @@ test('uploadFile should make a file upload request properly when given extra opt
         .post('/1/documents')
         .reply(202, doc1);
 
-    client.documents.uploadFile(fs.createReadStream(__dirname + '/files/content.pdf'), options, function (err, doc) {
+    client.documents.uploadFile(fs.createReadStream(__dirname + '/files/content.pdf'), { params: params }, function (err, doc) {
         t.notOk(err, 'should not be an error');
         t.deepEqual(doc1, doc, 'should be a doc');
         t.ok(request.isDone(), 'request should be made properly');
@@ -276,7 +276,7 @@ test('uploadURL should make a url upload request with the proper params', functi
         })
         .reply(202, doc1);
 
-    client.documents.uploadURL(url, { name: 'foo' }, function (err, doc) {
+    client.documents.uploadURL(url, { params: { name: 'foo' } }, function (err, doc) {
         t.notOk(err, 'should not be an error');
         t.deepEqual(doc1, doc, 'should be a doc');
         t.ok(request.isDone(), 'request should be made properly');
@@ -291,7 +291,7 @@ test('documents.getContent should return the document content as a readable stre
         .get('/1/documents/' + id + '/content.pdf')
         .replyWithFile(200, __dirname + '/files/content.pdf');
 
-    client.documents.getContent(id, 'pdf', function (err, response) {
+    client.documents.getContent(id, { extension: 'pdf' }, function (err, response) {
         t.notOk(err, 'should not be an error');
         t.ok(response.readable, 'response should be a readble stream');
         t.ok(request.isDone(), 'request should be made properly');
@@ -309,12 +309,12 @@ test('documents.getContent should retry requesting content when retry-after head
         .get('/1/documents/' + id + '/content.pdf')
         .replyWithFile(200, __dirname + '/files/content.pdf');
 
-    client.documents.getContent(id, 'pdf', function (err, response) {
+    client.documents.getContent(id, { extension: 'pdf', retry: true }, function (err, response) {
         t.notOk(err, 'should not be an error');
         t.ok(response.readable, 'response should be a readble stream');
         t.ok(request1.isDone(), 'request should be made properly');
         t.ok(request2.isDone(), 'request should be made properly');
-    }, true);
+    });
 });
 
 test('documents.getThumbnail should return the thumbnail as a readable stream when successful', function (t) {
@@ -325,7 +325,7 @@ test('documents.getThumbnail should return the thumbnail as a readable stream wh
         .get('/1/documents/' + id + '/thumbnail?width=200&height=100')
         .replyWithFile(200, __dirname + '/files/thumbnail.png');
 
-    client.documents.getThumbnail(id, { width: 200, height: 100 }, function (err, response) {
+    client.documents.getThumbnail(id, 200, 100, function (err, response) {
         t.notOk(err, 'should not be an error');
         t.ok(response.readable, 'response should be a readble stream');
         t.ok(request.isDone(), 'request should be made properly');
@@ -343,12 +343,12 @@ test('documents.getThumbnail should retry requesting thumbnail when retry-after 
         .get('/1/documents/' + id + '/thumbnail?width=200&height=100')
         .replyWithFile(200, __dirname + '/files/thumbnail.png');
 
-    client.documents.getThumbnail(id, { width: 200, height: 100 }, function (err, response) {
+    client.documents.getThumbnail(id, 200, 100, { retry: true }, function (err, response) {
         t.notOk(err, 'should not be an error');
         t.ok(response.readable, 'response should be a readble stream');
         t.ok(request1.isDone(), 'request should be made properly');
         t.ok(request2.isDone(), 'request should be made properly');
-    }, true);
+    });
 });
 
 
@@ -401,10 +401,10 @@ test('sessions.create should retry requesting a session when retry-after header 
         })
         .reply(201, session);
 
-    client.sessions.create(id, function (err, sess) {
+    client.sessions.create(id, { retry: true }, function (err, sess) {
         t.notOk(err, 'should not be an error');
         t.deepEqual(session, sess, 'session should be correct');
         t.ok(request1.isDone(), 'request should be made properly');
         t.ok(request2.isDone(), 'request should be made properly');
-    }, true);
+    });
 });
