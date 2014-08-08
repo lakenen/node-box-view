@@ -446,10 +446,6 @@ function BoxView(key, options) {
                 cached = new PassThrough();
                 file = new PassThrough();
 
-                // switch to old style streams to make it work properly with
-                // form-data
-                source.resume();
-
                 source.pipe(file);
                 source.pipe(cached);
 
