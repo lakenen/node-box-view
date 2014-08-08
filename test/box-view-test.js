@@ -99,7 +99,7 @@ test('documents.get should return an error when the document is not found', func
     t.plan(3);
 
     var id = 'abc',
-        err = {
+        error = {
             message: 'Not found',
             type: 'error',
             'request_id': 'abcxyz'
@@ -107,11 +107,11 @@ test('documents.get should return an error when the document is not found', func
 
     var request = nockAPI()
         .get('/1/documents/' + id)
-        .reply(404, err);
+        .reply(404, error);
 
-    client.documents.get(id, function (err, doc) {
+    client.documents.get(id, function (err, body) {
         t.ok(err, 'should be an error');
-        t.notOk(doc, 'should not be a doc');
+        t.deepEqual(body, error, 'should be error body');
         t.ok(request.isDone(), 'request should be made properly');
     });
 });
@@ -138,7 +138,7 @@ test('documents.update should return an error when the document is not found', f
     t.plan(3);
 
     var id = 'abc',
-        err = {
+        error = {
             message: 'Not found',
             type: 'error',
             'request_id': 'abcxyz'
@@ -147,11 +147,11 @@ test('documents.update should return an error when the document is not found', f
 
     var request = nockAPI()
         .put('/1/documents/' + id, data)
-        .reply(404, err);
+        .reply(404, error);
 
-    client.documents.update(id, data, function (err, doc) {
+    client.documents.update(id, data, function (err, body) {
         t.ok(err, 'should be an error');
-        t.notOk(doc, 'should not be a doc');
+        t.deepEqual(error, body, 'should be error body');
         t.ok(request.isDone(), 'request should be made properly');
     });
 });

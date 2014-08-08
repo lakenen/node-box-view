@@ -50,20 +50,6 @@ function parseJSONBody(body) {
 }
 
 /**
- * Create an error object to return
- * @param   {*} error            The error
- * @param   {Response?} response The response if available
- * @returns {Object}             The error object
- */
-function createErrorObject(error, response) {
-    return {
-        error: error,
-        status: response && response.statusCode || 0,
-        response: response
-    };
-}
-
-/**
  * Try to figure out the filename for the given file
  * @param   {Stream} file The file stream
  * @returns {string}      The guessed filename
@@ -173,18 +159,20 @@ function createResponseHandler(callback, okStatusCodes, retryFn) {
             }
             if (!body) {
                 response.pipe(concat(function (body) {
-                    error = parseJSONBody(body) || statusText(response.statusCode);
-                    callback(createErrorObject(error, response));
+                    error = parseJSONBody(body);
+                    error = error.message || statusText(response.statusCode);
+                    callback(new Error(error), response, error);
                 }));
             } else {
-                callback(createErrorObject(body, response));
+                error = body.message || statusText(response.statusCode);
+                callback(new Error(error), response, body);
             }
         }
     }
 
     return function (error, response) {
         if (error) {
-            callback(createErrorObject(error, response));
+            callback(error, response);
         } else {
             handleResponse(response);
         }
