@@ -43,8 +43,10 @@ Fetch a list of documents uploaded using this API key.
 
 Example:
 ```js
-client.documents.list(function (err, body, res) {
-    console.log(body)
+client.documents.list(function (err, list, res) {
+    // `list` is the JSON-parsed response body
+    // `res` is the HTTP Response object
+    console.log(list);
 });
 ```
 
@@ -66,7 +68,9 @@ Fetch the metadata for a single document.
 Example:
 ```js
 client.documents.get('some document id', function (err, doc, res) {
-    console.log(doc)
+    // `doc` is the JSON-parsed response body
+    // `res` is the HTTP Response object
+    console.log(doc);
 });
 ```
 
@@ -157,6 +161,7 @@ client.documents.getContent(id, { extension: 'zip' }, function (err, res) {
         return;
     }
 
+    // `res` is the HTTP Response object
     res.pipe(fs.createWriteStream('./doc.zip'));
 });
 ```
@@ -184,6 +189,7 @@ client.documents.getThumbnail(id, params, function (err, res) {
         return;
     }
 
+    // `res` is the HTTP Response object
     res.pipe(fs.createWriteStream('./thumbnail.png'));
 });
 ```
