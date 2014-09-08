@@ -357,7 +357,9 @@ function BoxView(key, options) {
             handler = createResponseHandler(callback, retry);
 
             r = req(client.documentsURL + '/' + id, requestOptions, handler);
-            r.end(JSON.stringify(data));
+            data = JSON.stringify(data);
+            r.setHeader('content-length', data.length);
+            r.end(data);
             return r;
         },
 
@@ -446,6 +448,9 @@ function BoxView(key, options) {
                 cached = new PassThrough();
                 file = new PassThrough();
 
+                source.resume();
+                cached.pause();
+
                 source.pipe(file);
                 source.pipe(cached);
 
@@ -457,7 +462,8 @@ function BoxView(key, options) {
                     file.headers = cached.headers = source.headers;
                     file.client = cached.client = source.client;
                 } else {
-                    if (source.path) {
+                    if (source.hasOwnProperty('fd')) {
+                        file.fd = cached.fd = source.fd;
                         file.path = cached.path = source.path;
                     }
                 }
@@ -500,6 +506,7 @@ function BoxView(key, options) {
                 r,
                 handler,
                 params,
+                data = '',
                 retry = false,
                 requestOptions = {
                     method: 'POST',
@@ -531,7 +538,10 @@ function BoxView(key, options) {
             handler = createResponseHandler(callback, [200, 202], retry);
 
             r = req(client.documentsURL, requestOptions, handler);
-            r.end(JSON.stringify(params));
+
+            data = JSON.stringify(params);
+            r.setHeader('content-length', data.length);
+            r.end(data);
             return r;
         },
 
@@ -638,6 +648,7 @@ function BoxView(key, options) {
                 r,
                 handler,
                 params,
+                data = '',
                 retry = false,
                 requestOptions = {
                     method: 'POST',
@@ -669,7 +680,10 @@ function BoxView(key, options) {
             handler = createResponseHandler(callback, [201, 202], retry);
 
             r = req(client.sessionsURL, requestOptions, handler);
-            r.end(JSON.stringify(params));
+
+            data = JSON.stringify(params);
+            r.setHeader('content-length', data.length);
+            r.end(data);
             return r;
         }
     };

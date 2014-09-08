@@ -11,6 +11,8 @@ var options = {
     retry: true
 };
 
+client.documentsUploadURL = process.env.BOX_VIEW_DOCUMENTS_UPLOAD_URL || client.documentsUploadURL;
+
 test('documents.uploadFile should upload the given file when called with a filename', function (t) {
     t.plan(2);
     client.documents.uploadFile(__dirname + '/files/content.pdf', options, function (err, doc) {
