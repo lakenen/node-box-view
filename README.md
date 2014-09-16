@@ -219,6 +219,11 @@ Request a viewing session for a document.
 Make sure you have the development dependencies installed by running `npm install`, then you should be able to run the tests with `npm test`.
 
 
+## API Support
+
+For any bugs or feedback with conversion or the API in general, please email api@box.com.
+
+
 ## License
 
 ([The MIT License](LICENSE))
