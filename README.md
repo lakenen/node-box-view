@@ -100,7 +100,8 @@ Delete a single document.
     * `[options.retry]` - (`boolean`) Whether to retry the request after `retry-after` seconds if the retry-after header is sent (default: `false`)
 * `[callback]` - (`Function`) A callback to call with the following arguments:
     * an error object or `null`
-    * the http response object
+    * JSON-parsed body if error
+    * the http response object if error
 
 #### uploadFile
 
@@ -151,7 +152,8 @@ Fetch a document of a specified format.
     * `[options.retry]` - (`boolean`) Whether to retry the request after `retry-after` seconds if the retry-after header is sent (default: `false`)
 * `[callback]` - (`Function`) A callback to call with the following arguments:
     * an error object or `null`
-    * the http response object
+    * the http response object (or JSON-parsed body if error)
+    * the http response object if error
 
 Example:
 ```js
@@ -179,7 +181,8 @@ Fetch a thumbnail for the given document id.
     * `[options.retry]` - (`boolean`) Whether to retry the request after `retry-after` seconds if the retry-after header is sent (default: `false`)
 * `[callback]` - (`Function`) A callback to call with the following arguments:
     * an error object or `null`
-    * the http response object
+    * the http response object (or JSON-parsed body if error)
+    * the http response object if error
 
 Example:
 ```js
