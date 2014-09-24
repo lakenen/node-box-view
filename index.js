@@ -108,17 +108,49 @@ request.defaults = function (options) {
 };
 
 /**
+ * Create an error object from the response and call the callback function
+ * @param   {Object}   body     The parsed response body (or null if not yet parsed)
+ * @param   {Response} response The HTTP response object
+ * @param   {Function} callback Function to call with the resulting error object
+ * @returns {void}
+ */
+function handleError(body, response, callback) {
+    var error;
+    if (!body) {
+        response.pipe(concat(function (body) {
+            body = parseJSONBody(body);
+            error = body.message || statusText(response.statusCode);
+            callback(new Error(error), body, response);
+        }));
+    } else {
+        error = body.message || statusText(response.statusCode);
+        callback(new Error(error), body, response);
+    }
+}
+
+/**
  * Return an http response handler for API calls
  * @param   {Function} callback      The callback method to call
  * @param   {Array}    okStatusCodes (optional) HTTP status codes to use as OK (default: [200])
+ * @param   {Boolean}  noBuffer      (optional) If true, the response will not be buffered and JSON parsed (unless error), default: false
  * @param   {Function} retryFn       (optional) If defined, function to call when receiving a Retry-After header
  * @returns {Function}               The response handler
  */
-function createResponseHandler(callback, okStatusCodes, retryFn) {
+function createResponseHandler(callback, okStatusCodes, noBuffer, retryFn) {
+    if (typeof callback !== 'function') {
+        callback = function () {};
+    }
+
     if (typeof okStatusCodes === 'function') {
         retryFn = okStatusCodes;
         okStatusCodes = null;
+        noBuffer = retryFn;
     }
+    if (typeof noBuffer === 'function') {
+        retryFn = noBuffer;
+        noBuffer = false;
+    }
+
     okStatusCodes = okStatusCodes || [200];
 
     /**
@@ -140,7 +172,7 @@ function createResponseHandler(callback, okStatusCodes, retryFn) {
         var error;
 
         // the handler expects a parsed response body
-        if (callback.length === 3 && typeof body === 'undefined') {
+        if (noBuffer !== true && typeof body === 'undefined') {
             response.pipe(concat(function (body) {
                 handleResponse(response, parseJSONBody(body));
             }));
@@ -149,7 +181,11 @@ function createResponseHandler(callback, okStatusCodes, retryFn) {
 
         if (okStatusCodes.indexOf(response.statusCode) > -1) {
             if (!retry(response)) {
-                callback(null, response, body);
+                if (noBuffer) {
+                    callback(null, response);
+                } else {
+                    callback(null, body, response);
+                }
             }
         } else {
             if (response.statusCode === 429) {
@@ -157,16 +193,8 @@ function createResponseHandler(callback, okStatusCodes, retryFn) {
                     return;
                 }
             }
-            if (!body) {
-                response.pipe(concat(function (body) {
-                    error = parseJSONBody(body);
-                    error = error.message || statusText(response.statusCode);
-                    callback(new Error(error), response, error);
-                }));
-            } else {
-                error = body.message || statusText(response.statusCode);
-                callback(new Error(error), response, body);
-            }
+
+            handleError(body, response, callback);
         }
     }
 
@@ -177,34 +205,6 @@ function createResponseHandler(callback, okStatusCodes, retryFn) {
             handleResponse(response);
         }
     };
-}
-
-/**
- * Create a callback function that expects a buffered response
- * @param   {Function} fn The callback function
- * @returns {Function}
- */
-function createBufferedCallback(fn) {
-    if (typeof fn === 'function') {
-        return function (err, res, body) {
-            fn(err, body, res);
-        };
-    }
-    return function () {};
-}
-
-/**
- * Create a callback function that explicitly expects a non-buffered response
- * @param   {Function} fn The callback function
- * @returns {Function}
- */
-function createCallback(fn) {
-    if (typeof fn === 'function') {
-        return function (err, res) {
-            fn(err, res);
-        };
-    }
-    return function () {};
 }
 
 /**
@@ -270,7 +270,6 @@ function BoxView(key, options) {
                 query = '?' + query;
             }
 
-            callback = createBufferedCallback(callback);
             handler = createResponseHandler(callback, retry);
 
             return req(client.documentsURL + query, handler);
@@ -315,7 +314,6 @@ function BoxView(key, options) {
                 });
             }
 
-            callback = createBufferedCallback(callback);
             handler = createResponseHandler(callback, retry);
 
             return req(client.documentsURL + '/' + id + query, handler);
@@ -353,7 +351,6 @@ function BoxView(key, options) {
                 this.update.apply(this, args);
             }.bind(this);
 
-            callback = createBufferedCallback(callback);
             handler = createResponseHandler(callback, retry);
 
             r = req(client.documentsURL + '/' + id, requestOptions, handler);
@@ -387,8 +384,7 @@ function BoxView(key, options) {
                 this.delete.apply(this, args);
             }.bind(this);
 
-            callback = createCallback(callback);
-            handler = createResponseHandler(callback, [204], retry);
+            handler = createResponseHandler(callback, [204], true, retry);
 
             return req(client.documentsURL + '/' + id, { method: 'DELETE' }, handler);
         },
@@ -469,7 +465,6 @@ function BoxView(key, options) {
                 }
             }
 
-            callback = createBufferedCallback(callback);
             handler = createResponseHandler(callback, [200, 202], retry);
 
             form = new FormData();
@@ -534,7 +529,6 @@ function BoxView(key, options) {
 
             params.url = url;
 
-            callback = createBufferedCallback(callback);
             handler = createResponseHandler(callback, [200, 202], retry);
 
             r = req(client.documentsURL, requestOptions, handler);
@@ -579,8 +573,7 @@ function BoxView(key, options) {
                 this.getContent.apply(this, args);
             }.bind(this);
 
-            callback = createCallback(callback);
-            handler = createResponseHandler(callback, [200, 202], retry);
+            handler = createResponseHandler(callback, [200, 202], true, retry);
 
             url = client.documentsURL + '/' + id + '/content' + extension;
             return req(url, handler);
@@ -620,8 +613,7 @@ function BoxView(key, options) {
                 height: height
             };
 
-            callback = createCallback(callback);
-            handler = createResponseHandler(callback, [200, 202], retry);
+            handler = createResponseHandler(callback, [200, 202], true, retry);
 
             query = querystring.stringify(params);
             url = client.documentsURL + '/' + id + '/thumbnail?' + query;
@@ -676,7 +668,6 @@ function BoxView(key, options) {
                 params['expires_at'] = getTimestamp(params['expires_at']);
             }
 
-            callback = createBufferedCallback(callback);
             handler = createResponseHandler(callback, [201, 202], retry);
 
             r = req(client.sessionsURL, requestOptions, handler);
