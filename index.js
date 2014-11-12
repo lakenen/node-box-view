@@ -43,7 +43,7 @@ function statusText(statusCode) {
  */
 function parseJSONBody(body) {
     try {
-        return JSON.parse(body);
+        return JSON.parse(body.toString());
     } catch (e) {
         return body;
     }
@@ -354,7 +354,7 @@ function BoxView(key, options) {
             handler = createResponseHandler(callback, retry);
 
             r = req(client.documentsURL + '/' + id, requestOptions, handler);
-            data = JSON.stringify(data);
+            data = new Buffer(JSON.stringify(data));
             r.setHeader('content-length', data.length);
             r.end(data);
             return r;
@@ -533,7 +533,7 @@ function BoxView(key, options) {
 
             r = req(client.documentsURL, requestOptions, handler);
 
-            data = JSON.stringify(params);
+            data = new Buffer(JSON.stringify(params));
             r.setHeader('content-length', data.length);
             r.end(data);
             return r;
@@ -672,7 +672,7 @@ function BoxView(key, options) {
 
             r = req(client.sessionsURL, requestOptions, handler);
 
-            data = JSON.stringify(params);
+            data = new Buffer(JSON.stringify(params));
             r.setHeader('content-length', data.length);
             r.end(data);
             return r;
