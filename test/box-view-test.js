@@ -156,6 +156,29 @@ test('documents.update should return an error when the document is not found', f
     });
 });
 
+test('documents.update should set content length correctly when unicode characters are used in the name', function (t) {
+    t.plan(3);
+
+    var id = 'abc',
+        error = {
+            message: 'Not found',
+            type: 'error',
+            'request_id': 'abcxyz'
+        },
+        data = { name: 'lorem’ipsum.pdf' };
+
+    var request = nockAPI()
+        .put('/1/documents/' + id, data)
+        .matchHeader('content-length', (new Buffer(JSON.stringify(data))).length)
+        .reply(404, error);
+
+    client.documents.update(id, data, function (err, body) {
+        t.ok(err, 'should be an error');
+        t.deepEqual(error, body, 'should be error body');
+        t.ok(request.isDone(), 'request should be made properly');
+    });
+});
+
 test('documents.delete should make a DELETE request properly', function (t) {
     t.plan(2);
 
@@ -277,6 +300,29 @@ test('uploadURL should make a url upload request with the proper params', functi
         .reply(202, doc1);
 
     client.documents.uploadURL(url, { params: { name: 'foo' } }, function (err, doc) {
+        t.notOk(err, 'should not be an error');
+        t.deepEqual(doc1, doc, 'should be a doc');
+        t.ok(request.isDone(), 'request should be made properly');
+    });
+});
+
+test('uploadURL should set content length correctly when unicode characters are used in the name', function (t) {
+    t.plan(3);
+
+    var url = 'http://example.com/lorem%E2%80%99ipsum.pdf',
+        name = 'lorem’ipsum.pdf',
+        data = {
+            name: name,
+            url: url
+        },
+        doc1 = { some: 'stuff' };
+
+    var request = nockAPI()
+        .post('/1/documents', data)
+        .matchHeader('content-length', (new Buffer(JSON.stringify(data))).length)
+        .reply(202, doc1);
+
+    client.documents.uploadURL(url, { params: { name: name } }, function (err, doc) {
         t.notOk(err, 'should not be an error');
         t.deepEqual(doc1, doc, 'should be a doc');
         t.ok(request.isDone(), 'request should be made properly');
