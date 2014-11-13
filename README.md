@@ -89,7 +89,7 @@ Update the metadata for a single document.
     * JSON-parsed response data
     * the http response object
 
-#### delete
+#### delete (documents)
 
 `client.documents.delete(id, options, callback)`
 
@@ -216,6 +216,21 @@ Request a viewing session for a document.
     * an error object or `null`
     * JSON-parsed response data
     * the http response object
+
+#### delete (sessions)
+
+`client.sessions.delete(id, options, callback)`
+
+Delete a single session.
+
+* `id` - (`string`) The session uuid
+* `[options]` - (`object`) An optional set of options for the request
+    * `[options.retry]` - (`boolean`) Whether to retry the request after `retry-after` seconds if the retry-after header is sent (default: `false`)
+* `[callback]` - (`Function`) A callback to call with the following arguments:
+    * an error object or `null`
+    * JSON-parsed body if error
+    * the http response object if error
+
 
 ## Running Tests
 
