@@ -676,6 +676,35 @@ function BoxView(key, options) {
             r.setHeader('content-length', data.length);
             r.end(data);
             return r;
+        },
+
+        /**
+         * Delete a session
+         * @param   {String}   id               The session uuid
+         * @param   {Object}   [options]        Delete options
+         * @param   {boolean}  [options.retry]  Whether to retry the request after 'retry-after' seconds if the retry-after header is sent
+         * @param   {Function} [callback]       A callback to call with the response data (or error)
+         * @returns {Request}
+         */
+        delete: function (id, options, callback) {
+            var args = arguments,
+                retry = false,
+                handler;
+
+            if (typeof options === 'function') {
+                callback = options;
+            } else {
+                options = extend({}, options);
+                retry = options.retry;
+            }
+
+            retry = (retry === true) && function () {
+                this.delete.apply(this, args);
+            }.bind(this);
+
+            handler = createResponseHandler(callback, [204], true, retry);
+
+            return req(client.sessionsURL + '/' + id, { method: 'DELETE' }, handler);
         }
     };
 }

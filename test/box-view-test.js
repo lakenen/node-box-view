@@ -454,3 +454,38 @@ test('sessions.create should retry requesting a session when retry-after header 
         t.ok(request2.isDone(), 'request should be made properly');
     });
 });
+
+test('sessions.delete should make a DELETE request properly', function (t) {
+    t.plan(2);
+
+    var id = 'abc';
+
+    var request = nockAPI()
+        .delete('/1/sessions/' + id)
+        .reply(204);
+
+    client.sessions.delete(id, function (err) {
+        t.notOk(err, 'should not be an error');
+        t.ok(request.isDone(), 'request should be made properly');
+    });
+});
+
+test('sessions.delete should return an error when the session is not found', function (t) {
+    t.plan(2);
+
+    var id = 'abc',
+        err = {
+            message: 'Not found',
+            type: 'error',
+            'request_id': 'abcxyz'
+        };
+
+    var request = nockAPI()
+        .delete('/1/sessions/' + id)
+        .reply(404, err);
+
+    client.sessions.delete(id, function (err) {
+        t.ok(err, 'should be an error');
+        t.ok(request.isDone(), 'request should be made properly');
+    });
+});
