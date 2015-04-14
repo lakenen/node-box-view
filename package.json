@@ -31,10 +31,10 @@
     }
   ],
   "dependencies": {
-    "concat-stream": "^1.4.6",
+    "concat-stream": "^1.4.8",
     "extend": "^1.2.1",
-    "form-data": "^0.1.4",
-    "hyperquest": "^0.3.0"
+    "form-data": "^0.2.0",
+    "hyperquest": "^1.2.0"
   },
   "devDependencies": {
     "nock": "^0.42.3",
