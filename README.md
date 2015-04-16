@@ -109,13 +109,15 @@ Delete a single document.
 
 Do a multipart upload.
 
+**NOTE: the `retry` option is not supported for multipart uploads (uploads specified via string filename or Stream.**
+
 * `file` - (`string` or `stream.Readable` or `File` or `Buffer`) A path to a file to read, a readable stream, a File object (e.g., in a browser), or a Buffer
 * `[options]` - (`object`) An optional set of options for the request
     * `[options.params]` - (`object`) An optional map of upload parameters
     * `[options.params.name]` - (`string`) The name of the file. If `options.params.name` is not set, it will be inferred from the file path.
     * `[options.params.thumbnails]` - (`string`) Comma-separated list of thumbnail dimensions of the format `{width}x{height}` (e.g. `'128×128,256×256'`) – width can be between 16 and 1024, height between 16 and 768
     * `[options.params.non_svg]` - (`boolean`) Whether to also create the non-svg version of the document
-    * `[options.retry]` - (`boolean`) Whether to retry the request after `retry-after` seconds if the retry-after header is sent (default: `false`)
+    * `[options.retry]` - (`boolean`) Whether to retry the request after `retry-after` seconds if the retry-after header is sent (default: `false`). *See above note about retry support for streams.*
 * `[callback]` - (`Function`) A callback to call with the following arguments:
     * an error object or `null`
     * JSON-parsed response data

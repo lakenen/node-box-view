@@ -8,7 +8,7 @@ var fs = require('fs'),
 
 var options = {
     params: {},
-    retry: true
+    retry: false
 };
 
 client.documentsUploadURL = process.env.BOX_VIEW_DOCUMENTS_UPLOAD_URL || client.documentsUploadURL;

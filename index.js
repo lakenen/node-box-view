@@ -406,8 +406,6 @@ function BoxView(key, options) {
                 r,
                 param,
                 form,
-                source,
-                cached,
                 handler,
                 params,
                 retry = false,
@@ -438,31 +436,9 @@ function BoxView(key, options) {
                 params.name = determineFilename(file);
             }
 
-            // if the file is a stream, we need to duplicate it
+            // if the file is a stream, we cannot retry
             if (retry && file.readable) {
-                source = file;
-                cached = new PassThrough();
-                file = new PassThrough();
-
-                source.resume();
-                cached.pause();
-
-                source.pipe(file);
-                source.pipe(cached);
-
-                args[0] = cached;
-
-                // copy relevant properties to the new stream objects
-                if (source.hasOwnProperty('httpVersion')) {
-                    file.httpVersion = cached.httpVersion = source.httpVersion;
-                    file.headers = cached.headers = source.headers;
-                    file.client = cached.client = source.client;
-                } else {
-                    if (source.hasOwnProperty('fd')) {
-                        file.fd = cached.fd = source.fd;
-                        file.path = cached.path = source.path;
-                    }
-                }
+                throw new Error('Retry option is not supported for streams.');
             }
 
             handler = createResponseHandler(callback, [200, 202], retry);
